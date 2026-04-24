@@ -1,0 +1,27 @@
+.claude/
+.idea/
+
+# Local configuration
+settings/config.yaml
+
+# Logs
+*.log
+
+# Go build outputs
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Frontend build artifacts
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+vite.svg
