@@ -20,9 +20,11 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Name string `mapstructure:"name"`
-	Mode string `mapstructure:"mode"`
-	Port int    `mapstructure:"port"`
+	Name      string `mapstructure:"name"`
+	Mode      string `mapstructure:"mode"`
+	Port      int    `mapstructure:"port"`
+	StartTime string `mapstructure:"start_time"`
+	MachineID int64  `mapstructure:"machine_id"`
 }
 
 type LogConfig struct {

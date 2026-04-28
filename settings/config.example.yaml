@@ -2,6 +2,8 @@ app:
   name: "web_app"
   mode: "dev"
   port: 8080
+  start_time: "2026-01-01"
+  machine_id: 1
 
 log:
   level: "debug"
