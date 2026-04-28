@@ -31,7 +31,7 @@ func main() {
 		return
 	}
 	//3.初始化日志
-	if err := logger.Init(); err != nil {
+	if err := logger.Init(&settings.GlobalConfig.Log, settings.GlobalConfig.App.Mode); err != nil {
 		fmt.Printf("init logger failed, err:%v\n", err)
 		return
 	}

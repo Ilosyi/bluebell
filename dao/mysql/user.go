@@ -1,24 +1,47 @@
 package mysql
 
-func InsertUser(){
-	//判断用户是否存在
+import (
+	"bluebell/models"
+	"crypto/md5"
+	"encoding/hex"
+	"errors"
+)
 
+// InsertUser 向数据库插入一条新的用户记录
+func InsertUser(user *models.User) error {
+	//对密码进行加密
+	user.Password, _ = encryptPassword(user.Password)
 	//执行SQL语句入库
+	sqlstr := "insert into user (user_id,username,password) values (?,?,?)"
+	_, err := db.Exec(sqlstr, user.UserID, user.Username, user.Password)
+	return err
 }
 
-func QueryUserById(){
+// QueryUserById 根据Id查询用户
+func QueryUserById() {
 
 }
 
-//判断用户是否存在
-func CheckUserExist(username string) (bool,error){
+// CheckUserExist 查询数据库，判断用户是否存在
+func CheckUserExist(username string) error {
 	//查询数据库，判断用户是否存在
-	sqlstr:="select count(user_id) from user where username=?"
+	sqlstr := "select count(user_id) from user where username=?"
 	var count int
-	err:=db.Get(&count,sqlstr,username)
-	if err != nil {
-		return false, err
+	if err := db.Get(&count, sqlstr, username); err != nil {
+		return err
 	}
-	return count > 0, nil
-	
+	if count > 0 {
+		return errors.New("用户已存在")
+	}
+	return nil
+
+}
+
+// 全局固定盐
+const globalSalt = "losyi"
+
+func encryptPassword(password string) (string, error) {
+	h := md5.New()
+	h.Write([]byte(globalSalt))
+	return hex.EncodeToString(h.Sum([]byte(password))), nil
 }

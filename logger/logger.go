@@ -17,23 +17,23 @@ import (
 	"bluebell/settings"
 )
 
-func Init() (err error) {
+func Init(cfg *settings.LogConfig, mode string) (err error) {
 	if settings.GlobalConfig == nil {
 		return
 	}
 
 	// 配置日志级别
-	level, err := zapcore.ParseLevel(settings.GlobalConfig.Log.Level)
+	level, err := zapcore.ParseLevel(cfg.Level)
 	if err != nil {
 		return err
 	}
 
 	// 配置日志输出文件
 	logWriter := &lumberjack.Logger{
-		Filename:   settings.GlobalConfig.Log.Filename,
-		MaxSize:    settings.GlobalConfig.Log.MaxSize,
-		MaxBackups: settings.GlobalConfig.Log.MaxBackups,
-		MaxAge:     settings.GlobalConfig.Log.MaxAge,
+		Filename:   cfg.Filename,
+		MaxSize:    cfg.MaxSize,
+		MaxBackups: cfg.MaxBackups,
+		MaxAge:     cfg.MaxAge,
 	}
 
 	// 创建编码器配置
@@ -54,12 +54,19 @@ func Init() (err error) {
 	// 创建编码器
 	encoder := zapcore.NewJSONEncoder(encoderConfig)
 
-	// 创建核心配置
-	core := zapcore.NewCore(
-		encoder,
-		zapcore.AddSync(logWriter),
-		zap.NewAtomicLevelAt(level),
-	)
+	var core zapcore.Core
+	if mode == "dev" {
+		//进入开发模式，日志输出到终端
+		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+		core = zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), zap.DebugLevel)
+	} else {
+		// 创建核心配置
+		core = zapcore.NewCore(
+			encoder,
+			zapcore.AddSync(logWriter),
+			zap.NewAtomicLevelAt(level),
+		)
+	}
 
 	// 创建 logger 并设置为全局 logger
 	globalLogger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
