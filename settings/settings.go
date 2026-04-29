@@ -17,6 +17,7 @@ type Config struct {
 	Log   LogConfig   `mapstructure:"log"`
 	MySQL MySQLConfig `mapstructure:"mysql"`
 	Redis RedisConfig `mapstructure:"redis"`
+	JWT   JWTConfig   `mapstructure:"jwt"`
 }
 
 type AppConfig struct {
@@ -49,6 +50,11 @@ type RedisConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
 	DB   int    `mapstructure:"db"`
+}
+
+type JWTConfig struct {
+	Secret        string `mapstructure:"secret"`
+	ExpireSeconds int64  `mapstructure:"expire_seconds"`
 }
 
 // Init 初始化配置

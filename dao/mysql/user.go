@@ -45,3 +45,22 @@ func encryptPassword(password string) (string, error) {
 	h.Write([]byte(globalSalt))
 	return hex.EncodeToString(h.Sum([]byte(password))), nil
 }
+
+func Login(user *models.User) error {
+	//先记录原始密码
+	oPassword := user.Password
+	sqlstr := "select user_id, username, password from user where username=?"
+	err := db.Get(user, sqlstr, user.Username)
+	if err != nil {
+		return err
+	}
+	//判断密码是否正确
+	password, err := encryptPassword(oPassword)
+	if err != nil {
+		return err
+	}
+	if user.Password != password {
+		return errors.New("用户名或密码错误")
+	}
+	return nil
+}

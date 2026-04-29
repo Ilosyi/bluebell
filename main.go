@@ -8,6 +8,7 @@ import (
 	"bluebell/routes"
 	"bluebell/settings"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -35,14 +37,24 @@ func main() {
 		fmt.Printf("init logger failed, err:%v\n", err)
 		return
 	}
-	defer zap.L().Sync()
+	defer func(l *zap.Logger) {
+		err := l.Sync()
+		if err != nil {
+			fmt.Printf("sync logger failed, err:%v\n", err)
+		}
+	}(zap.L())
 	zap.L().Debug("logger init success")
 	//3.初始化MySQL连接
 	if err := mysql.Init(); err != nil {
 		fmt.Printf("init mysql failed, err:%v\n", err)
 		return
 	}
-	defer mysql.GetDB().Close()
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			fmt.Printf("close mysql failed, err:%v\n", err)
+		}
+	}(mysql.GetDB())
 	//4,初始化Redis连接
 	// if err := redis.Init(); err != nil {
 	// 	fmt.Printf("init redis failed, err:%v\n", err)
@@ -64,7 +76,7 @@ func main() {
 	}
 	go func() {
 		//开启一个goroutine启动服务
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
@@ -75,7 +87,7 @@ func main() {
 	zap.L().Info("shutdown server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil && err != http.ErrServerClosed {
+	if err := srv.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server shutdown failed, err:%v\n", err)
 	}
 	log.Println("server shutdown success.")

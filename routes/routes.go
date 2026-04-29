@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bluebell/controller"
+	"bluebell/middlewares"
 	"bluebell/settings"
 
 	"bluebell/logger"
@@ -19,10 +20,15 @@ func Setup() *gin.Engine {
 
 	//注册路由
 	r.POST("/signup", controller.SignUpHandler)
-
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Hello, World!",
+	//登录路由
+	r.POST("/login", controller.LoginHandler)
+	r.GET("/ping", middlewares.JWTAuthMiddleware(), func(c *gin.Context) {
+		userID, _ := c.Get(controller.CtxUserIDKey)
+		username, _ := c.Get(controller.CtxUsernameKey)
+		controller.ResponseSuccess(c, gin.H{
+			"message":  "pong",
+			"user_id":  userID,
+			"username": username,
 		})
 	})
 	return r

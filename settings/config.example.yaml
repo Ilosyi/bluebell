@@ -25,3 +25,8 @@ redis:
   host: "localhost"
   port: 6379
   db: 0
+
+jwt:
+  secret: "change_me"
+  expire_seconds: 86400
+
