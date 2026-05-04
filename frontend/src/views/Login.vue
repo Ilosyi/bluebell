@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MessageCircle, Sparkles } from 'lucide-vue-next'
-import { login } from '../api/auth'
+import { login, saveAuth } from '../api/auth'
 
 const router = useRouter()
 const formRef = ref()
@@ -36,8 +36,7 @@ async function submit() {
   try {
     const payload = await login({ ...form })
     if (payload?.token) {
-      localStorage.setItem('bluebell_token', payload.token)
-      localStorage.setItem('bluebell_user', JSON.stringify(payload))
+      saveAuth(payload)
       router.push('/')
       return
     }
@@ -57,7 +56,7 @@ async function submit() {
       <div class="sky-orb sky-orb-primary"></div>
       <div class="sky-orb sky-orb-soft"></div>
       <p class="eyebrow">Bluebell Forum</p>
-      <h1>回到你的天蓝色讨论场</h1>
+      <h1>回到风铃草</h1>
       <p class="hero-copy">登录后继续参与话题、收藏帖子，并和同好一起沉淀有价值的讨论。</p>
       <div class="hero-note">
         <MessageCircle :size="18" />

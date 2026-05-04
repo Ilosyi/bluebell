@@ -7,6 +7,14 @@ import (
 	"errors"
 )
 
+// 根据用户id获取用户信息
+func GetUserById(userId int64) (user *models.User, err error) {
+	user = new(models.User)
+	sqlstr := "select username from user where user_id=?"
+	err = db.Get(user, sqlstr, userId)
+	return
+}
+
 // InsertUser 向数据库插入一条新的用户记录
 func InsertUser(user *models.User) error {
 	//对密码进行加密
