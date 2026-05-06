@@ -1,0 +1,407 @@
+basePath: /api/v1
+definitions:
+  controller.ResCode:
+    enum:
+    - 1000
+    - 1001
+    - 1002
+    - 1003
+    - 1004
+    - 1005
+    - 1006
+    - 1007
+    format: int64
+    type: integer
+    x-enum-varnames:
+    - CodeSuccess
+    - CodeInvalidParam
+    - CodeUserExist
+    - CodeUserNotExist
+    - CodeInvalidPassword
+    - CodeServerBusy
+    - CodeNeedLogin
+    - CodeInvalidToken
+  controller.Response:
+    properties:
+      code:
+        allOf:
+        - $ref: '#/definitions/controller.ResCode'
+        description: 业务状态码
+      data:
+        description: 响应数据
+      msg:
+        description: 提示信息
+    type: object
+  models.ApiPostDetail:
+    properties:
+      author_name:
+        description: 作者用户名
+        type: string
+      community:
+        allOf:
+        - $ref: '#/definitions/models.CommunityDetail'
+        description: 所属社区信息
+      post:
+        allOf:
+        - $ref: '#/definitions/models.Post'
+        description: 帖子详情
+      vote_num:
+        description: 赞成票数
+        type: integer
+    type: object
+  models.Community:
+    properties:
+      id:
+        description: 社区ID
+        type: integer
+      name:
+        description: 社区名称
+        type: string
+    type: object
+  models.CommunityDetail:
+    properties:
+      create_time:
+        description: 创建时间
+        type: string
+      id:
+        description: 社区ID
+        type: integer
+      introduction:
+        description: 社区简介
+        type: string
+      name:
+        description: 社区名称
+        type: string
+    type: object
+  models.LoginData:
+    properties:
+      token:
+        description: JWT Token
+        example: eyJhbGciOi...
+        type: string
+      user_id:
+        description: 用户ID（字符串格式，避免JS精度丢失）
+        example: "1234567890"
+        type: string
+      user_name:
+        description: 用户名
+        example: zhangsan
+        type: string
+    type: object
+  models.LoginParam:
+    properties:
+      password:
+        description: 密码
+        maxLength: 20
+        minLength: 6
+        type: string
+      username:
+        description: 用户名
+        maxLength: 20
+        minLength: 2
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.ParamVoteData:
+    properties:
+      direction:
+        description: 投票方向：1=赞成，-1=反对，0=取消
+        enum:
+        - 1
+        - -1
+        - 0
+        example: "0"
+        type: string
+      post_id:
+        description: 帖子ID
+        type: string
+    required:
+    - post_id
+    type: object
+  models.Post:
+    properties:
+      author_id:
+        description: 作者用户ID
+        type: integer
+      community_id:
+        description: 所属社区ID
+        type: integer
+      content:
+        description: 帖子内容
+        type: string
+      create_time:
+        description: 创建时间
+        type: string
+      id:
+        description: 帖子ID（雪花算法生成）
+        type: integer
+      status:
+        description: 帖子状态
+        type: integer
+      title:
+        description: 帖子标题
+        type: string
+    required:
+    - community_id
+    - content
+    - title
+    type: object
+  models.SignUpData:
+    properties:
+      message:
+        description: 提示信息
+        example: ok
+        type: string
+    type: object
+  models.SignUpParam:
+    properties:
+      password:
+        description: 密码，6-20个字符
+        maxLength: 20
+        minLength: 6
+        type: string
+      re_password:
+        description: 确认密码，需与密码一致
+        type: string
+      username:
+        description: 用户名，2-20个字符
+        maxLength: 20
+        minLength: 2
+        type: string
+    required:
+    - password
+    - re_password
+    - username
+    type: object
+  models.VoteData:
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: bluebell 社区论坛后端接口文档
+  title: bluebell 社区论坛 API
+  version: "1.0"
+paths:
+  /community:
+    get:
+      description: 查询所有社区（id、name），以列表形式返回
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务繁忙
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 获取所有社区
+      tags:
+      - 社区模块
+  /community/{id}:
+    get:
+      description: 根据社区ID获取社区详情
+      parameters:
+      - description: 社区ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误或服务繁忙
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 获取社区详情
+      tags:
+      - 社区模块
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录接口，返回 user_id、user_name 和 JWT token
+      parameters:
+      - description: 登录参数
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginParam'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误或用户名密码错误
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 用户登录
+      tags:
+      - 用户模块
+  /post:
+    post:
+      consumes:
+      - application/json
+      description: 创建帖子接口，需要登录
+      parameters:
+      - description: 帖子参数（title、content、community_id）
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/models.Post'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误或未登录
+          schema:
+            $ref: '#/definitions/controller.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建帖子
+      tags:
+      - 帖子模块
+  /post/{id}:
+    get:
+      description: 根据帖子ID获取帖子详情（含作者、社区信息、投票数）
+      parameters:
+      - description: 帖子ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误或服务繁忙
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 获取帖子详情
+      tags:
+      - 帖子模块
+  /posts:
+    get:
+      description: 分页获取帖子列表，按创建时间倒序
+      parameters:
+      - default: 1
+        description: 页码
+        format: int64
+        in: query
+        name: page
+        required: true
+        type: integer
+      - default: 10
+        description: 每页数量
+        format: int64
+        in: query
+        name: size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务繁忙
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 帖子列表（按时间倒序）
+      tags:
+      - 帖子模块
+  /posts2:
+    get:
+      description: 按时间或分数排序获取帖子列表，支持社区ID筛选
+      parameters:
+      - default: 1
+        description: 页码
+        format: int64
+        in: query
+        name: page
+        required: true
+        type: integer
+      - default: 10
+        description: 每页数量
+        format: int64
+        in: query
+        name: size
+        required: true
+        type: integer
+      - default: time
+        description: '排序方式: time 或 score'
+        enum:
+        - time
+        - score
+        in: query
+        name: order
+        required: true
+        type: string
+      - description: 社区ID（0或不传表示全局）
+        format: int64
+        in: query
+        name: community_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误或服务繁忙
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 帖子列表（支持排序和社区筛选）
+      tags:
+      - 帖子模块
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册接口，传入用户名、密码、确认密码
+      parameters:
+      - description: 注册参数
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignUpParam'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误或用户已存在
+          schema:
+            $ref: '#/definitions/controller.Response'
+      summary: 用户注册
+      tags:
+      - 用户模块
+  /vote:
+    post:
+      consumes:
+      - application/json
+      description: 对帖子进行投票（赞成=1，反对=-1，取消=0），需要登录
+      parameters:
+      - description: 投票参数
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/models.ParamVoteData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数错误、未登录、重复投票或超出投票时间
+          schema:
+            $ref: '#/definitions/controller.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 帖子投票
+      tags:
+      - 投票模块
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

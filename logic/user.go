@@ -25,7 +25,7 @@ func SignUp(p *models.SignUpParam) (err error) {
 	return mysql.InsertUser(user)
 }
 
-func LoginUp(p *models.LoginParam) (*models.User, error) {
+func Login(p *models.LoginParam) (*models.User, error) {
 	user := &models.User{
 		Username: p.Username,
 		Password: p.Password,

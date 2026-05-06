@@ -1,5 +1,6 @@
 package controller
 
+// ResCode 响应状态码
 type ResCode int64
 
 const (

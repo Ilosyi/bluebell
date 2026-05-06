@@ -13,6 +13,15 @@ import (
 )
 
 // SignUpHandler 用户注册
+// @Summary 用户注册
+// @Description 用户注册接口，传入用户名、密码、确认密码
+// @Tags 用户模块
+// @Accept json
+// @Produce json
+// @Param object body models.SignUpParam true "注册参数"
+// @Success 200 {object} Response{data=models.SignUpData} "成功"
+// @Failure 200 {object} Response "参数错误或用户已存在"
+// @Router /signup [post]
 func SignUpHandler(c *gin.Context) {
 	//1.获取参数和参数校验
 	//json:{"username":"xxx","password":"xxx","re_password":"xxx"}
@@ -48,7 +57,16 @@ func SignUpHandler(c *gin.Context) {
 	ResponseSuccess(c, gin.H{"message": "ok"})
 }
 
-// LoginHandler  处理登录请求
+// LoginHandler 处理登录请求
+// @Summary 用户登录
+// @Description 用户登录接口，返回 user_id、user_name 和 JWT token
+// @Tags 用户模块
+// @Accept json
+// @Produce json
+// @Param object body models.LoginParam true "登录参数"
+// @Success 200 {object} Response{data=models.LoginData} "成功"
+// @Failure 200 {object} Response "参数错误或用户名密码错误"
+// @Router /login [post]
 func LoginHandler(c *gin.Context) {
 	//1.获取参数和参数校验
 	p := new(models.LoginParam)
@@ -65,7 +83,7 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 	//2.业务处理
-	user, err := logic.LoginUp(p)
+	user, err := logic.Login(p)
 	if err != nil {
 		zap.L().Error("登录失败", zap.Error(err))
 		switch {
