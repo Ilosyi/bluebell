@@ -9,6 +9,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+var voteForPost = logic.VoteForPost
+
 // PostVoteHandler 帖子投票
 // @Summary 帖子投票
 // @Description 对帖子进行投票（赞成=1，反对=-1，取消=0），需要登录
@@ -41,7 +43,7 @@ func PostVoteHandler(c *gin.Context) {
 		ResponseError(c, CodeNeedLogin)
 		return
 	}
-	if err := logic.VoteForPost(userID, p); err != nil {
+	if err := voteForPost(userID, p); err != nil {
 		ResponseErrorWithMsg(c, CodeServerBusy, err.Error())
 		return
 	}

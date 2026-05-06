@@ -1,0 +1,155 @@
+# Air 配置文件
+# 用于 Go 项目的热加载开发环境配置
+# 官方文档: https://github.com/air-verse/air
+
+# 全局配置
+# =========================================
+# 额外的环境变量文件列表
+# 可以指定多个 .env 文件，Air 会加载其中的环境变量
+env_files = []
+# 项目根目录路径
+# 相对于此配置文件的路径，"." 表示当前目录
+root = "."
+# 测试数据目录
+# Air 会监听此目录的变化，但不建议放测试文件
+testdata_dir = "testdata"
+# 临时文件目录
+# 存放编译后的二进制文件和其他临时产物
+tmp_dir = "tmp"
+
+# 构建配置
+# =========================================
+[build]
+# 传递给二进制文件的命令行参数
+# 例如: args_bin = ["--port", "8080", "--env", "prod"]
+args_bin = []
+# 编译后生成的二进制文件路径
+# 相对于 root 的路径，通常放在 tmp_dir 下
+bin = "./tmp/main"
+# 编译命令
+# Air 检测到文件变化后执行的命令
+cmd = "go build -o ./tmp/main ."
+# 文件变更后延迟执行编译的时间（单位：毫秒）
+# 避免频繁保存文件时多次触发编译，1000 = 1秒
+delay = 1000
+# 入口点命令
+# 启动二进制文件的命令，通常与 bin 相同或包含其他参数
+entrypoint = ["./tmp/main"]
+# 需要排除监听的目录（相对于 root）
+# 这些目录下的文件变化不会触发重新编译
+exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+# 需要排除监听的特定文件
+exclude_file = []
+# 排除匹配正则表达式的文件
+# "_test.go" 表示忽略所有测试文件
+exclude_regex = ["_test.go"]
+# 排除未变化的文件
+# true: 只触发内容真正变化的文件，false: 触发所有变化（包括权限、时间戳等）
+exclude_unchanged = false
+# 是否跟随符号链接
+# true: 监听的目录中有符号链接会跟随到实际目录，false: 忽略符号链接
+follow_symlink = false
+# 完整的二进制命令
+# 可以覆盖 entrypoint 和 args_bin 的完整命令字符串
+full_bin = ""
+# 是否忽略危险的根目录监听
+# 当 root = "/" 时，设为 true 可以阻止 Air 运行（防止系统负载过高）
+ignore_dangerous_root_dir = false
+# 需要额外监听的目录（默认监听所有子目录）
+# 只有在这里指定的目录才会被监听，为空则监听所有目录
+include_dir = []
+# 需要监听的文件扩展名
+# 只有这些扩展名的文件变化才会触发重新编译
+include_ext = ["go", "tpl", "tmpl", "html"]
+# 需要额外监听的特定文件
+include_file = []
+# 杀死进程的延迟时间
+# 发送终止信号后等待多久强制杀死进程（例如 "5s" 表示5秒）
+kill_delay = "0s"
+# 构建错误日志文件路径
+# 编译错误时会写入此文件
+log = "build-errors.log"
+# 是否使用轮询模式监听文件变化
+# false: 使用 fsnotify（高效），true: 使用轮询（兼容网络文件系统）
+poll = false
+# 轮询模式下的检查间隔（秒）
+# 仅当 poll = true 时生效
+poll_interval = 0
+# 编译后执行的命令
+# 例如：运行测试、生成文档等
+post_cmd = []
+# 编译前执行的命令
+# 例如：清理缓存、下载依赖等
+pre_cmd = []
+# 无变化时是否强制重启
+# true: 每次都会重启服务，false: 只有文件变化才重启
+rerun = false
+# 重启延迟时间（毫秒）
+# 构建完成后延迟多久重启服务
+rerun_delay = 500
+# 是否发送中断信号（SIGINT）而不是杀死进程（SIGKILL）
+# true: 发送 SIGINT（优雅关闭），false: 发送 SIGKILL（强制杀死）
+send_interrupt = false
+# 构建失败时是否停止运行旧进程
+# true: 构建失败会停止旧服务，false: 构建失败继续运行旧服务
+stop_on_error = false
+
+# 终端颜色配置
+# =========================================
+[color]
+# 应用运行时的日志颜色
+app = ""
+# 构建日志的颜色
+build = "yellow"
+# 主标题的颜色
+main = "magenta"
+# 运行日志的颜色
+runner = "green"
+# 文件监听日志的颜色
+watcher = "cyan"
+
+# 日志配置
+# =========================================
+[log]
+# 是否只输出主日志（不输出子进程的日志）
+# true: 只显示 Air 自身的日志，false: 显示所有日志
+main_only = false
+# 静默模式，不输出任何日志
+# true: 完全无输出，false: 正常输出
+silent = false
+# 是否在日志中显示时间戳
+# true: 每条日志前显示时间，false: 不显示
+time = false
+
+# 其他杂项配置
+# =========================================
+[misc]
+# 退出时是否清理临时文件
+# true: 退出 Air 时删除 tmp_dir 目录，false: 保留临时文件
+clean_on_exit = false
+
+# 代理配置
+# =========================================
+[proxy]
+# 应用监听的端口
+# 用于代理转发，0 表示自动检测
+app_port = 0
+# 应用启动超时时间（毫秒）
+# 等待应用启动的最长时间，超时则启动失败
+app_start_timeout = 0
+# 是否启用代理模式
+# true: Air 会作为反向代理转发请求到你的应用，解决端口冲突
+enabled = false
+# 代理监听的端口
+# Air 会启动一个代理服务监听此端口，转发请求到 app_port
+proxy_port = 0
+
+# 屏幕显示配置
+# =========================================
+[screen]
+# 每次重建时是否清空终端屏幕
+# true: 每次重启前清屏，false: 不清屏（保留历史输出）
+clear_on_rebuild = false
+# 是否保持滚动位置
+# true: 不清除屏幕滚动缓存，false: 重置滚动位置
+keep_scroll = true

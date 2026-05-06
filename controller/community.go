@@ -8,6 +8,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	getCommunityList   = logic.GetCommunityList
+	getCommunityDetail = logic.GetCommunityDetail
+)
+
 // CommunityHandler 获取社区列表
 // @Summary 获取所有社区
 // @Description 查询所有社区（id、name），以列表形式返回
@@ -18,7 +23,7 @@ import (
 // @Router /community [get]
 func CommunityHandler(c *gin.Context) {
 	//查询所有社区（id、name），以列表（切片）形式返回
-	data, err := logic.GetCommunityList()
+	data, err := getCommunityList()
 	if err != nil {
 		zap.L().Error("logic.GetCommunityList failed", zap.Error(err))
 		//不轻易把服务端报错暴露给外面
@@ -48,7 +53,7 @@ func CommunityDetailHandler(c *gin.Context) {
 		return
 	}
 	//根据id获取详情
-	data, err := logic.GetCommunityDetail(id)
+	data, err := getCommunityDetail(id)
 	if err != nil {
 		zap.L().Error("logic.GetCommunityDetail failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)

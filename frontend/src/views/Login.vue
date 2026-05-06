@@ -1,11 +1,13 @@
 <script setup>
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MessageCircle, Sparkles } from 'lucide-vue-next'
 import { login, saveAuth } from '../api/auth'
+import { forumConfig } from '../config/forum'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref()
 const loading = ref(false)
 const errorMessage = ref('')
@@ -35,12 +37,9 @@ async function submit() {
   loading.value = true
   try {
     const payload = await login({ ...form })
-    if (payload?.token) {
-      saveAuth(payload)
-      router.push('/')
-      return
-    }
-    throw new Error('登录响应缺少 token')
+    saveAuth(payload)
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    router.push(redirect)
   } catch (error) {
     errorMessage.value = error.message
     ElMessage.error(error.message)
@@ -55,12 +54,12 @@ async function submit() {
     <section class="auth-hero">
       <div class="sky-orb sky-orb-primary"></div>
       <div class="sky-orb sky-orb-soft"></div>
-      <p class="eyebrow">Bluebell Forum</p>
-      <h1>回到风铃草</h1>
-      <p class="hero-copy">登录后继续参与话题、收藏帖子，并和同好一起沉淀有价值的讨论。</p>
+      <p class="eyebrow">{{ forumConfig.auth.loginEyebrow }}</p>
+      <h1>{{ forumConfig.auth.loginHeroTitle }}</h1>
+      <p class="hero-copy">{{ forumConfig.auth.loginHeroCopy }}</p>
       <div class="hero-note">
         <MessageCircle :size="18" />
-        <span>轻量、清爽、专注内容的社区前端入口。</span>
+        <span>{{ forumConfig.auth.loginHeroNote }}</span>
       </div>
     </section>
 
@@ -68,7 +67,7 @@ async function submit() {
       <template #header>
         <div class="card-header">
           <div>
-            <p class="form-kicker">欢迎回来</p>
+            <p class="form-kicker">{{ forumConfig.auth.loginCardKicker }}</p>
             <h2>登录账号</h2>
           </div>
           <Sparkles :size="24" />
@@ -89,22 +88,17 @@ async function submit() {
           <el-input v-model.trim="form.username" placeholder="请输入用户名" clearable />
         </el-form-item>
         <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="form.password"
-            placeholder="请输入密码"
-            show-password
-            type="password"
-            @keyup.enter="submit"
-          />
+          <el-input v-model="form.password" placeholder="请输入密码" show-password type="password" @keyup.enter="submit" />
         </el-form-item>
+
         <el-button class="submit-button" type="primary" size="large" round :loading="loading" @click="submit">
           登录
         </el-button>
       </el-form>
 
       <p class="switch-copy">
-        还没有账号？
-        <RouterLink to="/signup">立即注册</RouterLink>
+        {{ forumConfig.auth.loginNoAccount }}
+        <RouterLink to="/signup">{{ forumConfig.auth.loginSignupLink }}</RouterLink>
       </p>
     </el-card>
   </main>

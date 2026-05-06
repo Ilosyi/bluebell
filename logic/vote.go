@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var voteForPostInRedis = redis.VoteForPost
+
 /*投票功能
 投票的几种情况
 direction=1时
@@ -24,7 +26,7 @@ direction=0时
 */
 
 func VoteForPost(userID int64, p *models.ParamVoteData) error {
-	err := redis.VoteForPost(userID, p.PostId, float64(p.Direction))
+	err := voteForPostInRedis(userID, p.PostId, float64(p.Direction))
 	if err != nil {
 		//Debug日志
 		zap.L().Debug("redis.VoteForPost failed", zap.Int64("userID", userID), zap.String("postID", p.PostId), zap.Int8("direction", p.Direction), zap.Error(err))

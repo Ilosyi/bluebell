@@ -9,6 +9,13 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	createPost     = logic.CreatePost
+	getPostByID    = logic.GetPostById
+	getPostList    = logic.GetPostList
+	getPostListNew = logic.GetPostListNew
+)
+
 // CreatePostHandler 创建帖子
 // @Summary 创建帖子
 // @Description 创建帖子接口，需要登录
@@ -38,7 +45,7 @@ func CreatePostHandler(c *gin.Context) {
 	}
 	p.AuthorID = userID
 	//2.创建帖子
-	if err := logic.CreatePost(p); err != nil {
+	if err := createPost(p); err != nil {
 		zap.L().Error("logic.CreatePost failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)
 		return
@@ -68,7 +75,7 @@ func GetPostDetailHandler(c *gin.Context) {
 		return
 	}
 	//2.根据id取出帖子数据
-	data, err := logic.GetPostById(pid)
+	data, err := getPostByID(pid)
 	if err != nil {
 		zap.L().Error("logic.GetPostById(pid) failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)
@@ -103,7 +110,7 @@ func GetPostListHandler2(c *gin.Context) {
 		return
 	}
 	//调用logic层获取数据
-	data, err := logic.GetPostListNew(p)
+	data, err := getPostListNew(p)
 	if err != nil {
 		zap.L().Error("logic.GetPostListNew failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)
@@ -126,7 +133,7 @@ func GetPostListHandler(c *gin.Context) {
 	//获取分页参数
 	page, size := getPageInfo(c)
 	//获取数据
-	data, err := logic.GetPostList(page, size)
+	data, err := getPostList(page, size)
 	if err != nil {
 		zap.L().Error("logic.GetPostList failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)

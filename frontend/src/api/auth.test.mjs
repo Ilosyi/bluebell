@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict'
+
+const store = new Map()
+globalThis.localStorage = {
+  getItem: (key) => store.get(key) ?? null,
+  setItem: (key, value) => store.set(key, String(value)),
+  removeItem: (key) => store.delete(key)
+}
+
 import {
   AUTH_ERROR_CODES,
   buildAuthHeader,
   createAuthError,
+  clearAuth,
+  getToken,
+  getUser,
   isAuthErrorCode,
+  saveAuth,
   unwrapApiResponse
 } from './auth.js'
 
@@ -38,3 +50,14 @@ const authError = createAuthError('无效的token', 1007)
 assert.equal(authError.message, '无效的token')
 assert.equal(authError.code, 1007)
 assert.equal(authError.isAuthError, true)
+
+saveAuth({ token: 'jwt-token', user_name: 'alice' })
+assert.equal(getToken(), 'jwt-token')
+assert.deepEqual(getUser(), { token: 'jwt-token', user_name: 'alice' })
+
+store.set('bluebell_user', '{bad json')
+assert.deepEqual(getUser(), { token: 'jwt-token', user_name: 'alice' })
+
+clearAuth()
+assert.equal(getToken(), '')
+assert.equal(getUser(), null)

@@ -5,12 +5,17 @@ import (
 	"bluebell/models"
 )
 
+var (
+	getCommunityListFromMySQL       = mysql.GetCommunityList
+	getCommunityDetailByIDFromMySQL = mysql.GetCommunityDetailByID
+)
+
 func GetCommunityList() ([]*models.Community, error) {
 
-	return mysql.GetCommunityList()
+	return getCommunityListFromMySQL()
 
 }
 
 func GetCommunityDetail(id int64) (*models.CommunityDetail, error) {
-	return mysql.GetCommunityDetailByID(id)
+	return getCommunityDetailByIDFromMySQL(id)
 }

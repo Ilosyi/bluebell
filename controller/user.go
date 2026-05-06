@@ -12,6 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	signUp = logic.SignUp
+	login  = logic.Login
+)
+
 // SignUpHandler 用户注册
 // @Summary 用户注册
 // @Description 用户注册接口，传入用户名、密码、确认密码
@@ -44,7 +49,7 @@ func SignUpHandler(c *gin.Context) {
 		return
 	}
 	//2.业务处理
-	if err := logic.SignUp(p); err != nil {
+	if err := signUp(p); err != nil {
 		switch {
 		case strings.Contains(err.Error(), "用户已存在"):
 			ResponseError(c, CodeUserExist)
@@ -83,7 +88,7 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 	//2.业务处理
-	user, err := logic.Login(p)
+	user, err := login(p)
 	if err != nil {
 		zap.L().Error("登录失败", zap.Error(err))
 		switch {

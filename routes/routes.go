@@ -25,6 +25,12 @@ func Setup() *gin.Engine {
 		logger.GinRecovery(true))
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	v1 := r.Group("/api/v1")
+	//ping
+	v1.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
 	//注册路由
 	v1.POST("/signup", controller.SignUpHandler)
 	//登录路由
@@ -48,14 +54,5 @@ func Setup() *gin.Engine {
 		v1.POST("/vote", controller.PostVoteHandler)
 	}
 
-	v1.GET("/ping", middlewares.JWTAuthMiddleware(), func(c *gin.Context) {
-		userID, _ := c.Get(controller.CtxUserIDKey)
-		username, _ := c.Get(controller.CtxUsernameKey)
-		controller.ResponseSuccess(c, gin.H{
-			"message":  "pong",
-			"user_id":  userID,
-			"username": username,
-		})
-	})
 	return r
 }

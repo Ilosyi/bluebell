@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { computed, readonly, ref } from 'vue'
 
 export const AUTH_ERROR_CODES = [1006, 1007]
 const TOKEN_KEY = 'bluebell_token'
@@ -11,17 +12,16 @@ export const client = axios.create({
 
 let authRedirectHandler = null
 
-function getMessage(error, fallback) {
-  const response = error?.response?.data
-  return response?.msg || response?.message || response?.data || error?.message || fallback
+function getStorage() {
+  return typeof localStorage === 'undefined' ? null : localStorage
 }
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY) || ''
+function readTokenFromStorage() {
+  return getStorage()?.getItem(TOKEN_KEY) || ''
 }
 
-export function getUser() {
-  const raw = localStorage.getItem(USER_KEY)
+function readUserFromStorage() {
+  const raw = getStorage()?.getItem(USER_KEY)
   if (!raw) return null
   try {
     return JSON.parse(raw)
@@ -30,16 +30,67 @@ export function getUser() {
   }
 }
 
-export function saveAuth(payload) {
-  if (payload?.token) {
-    localStorage.setItem(TOKEN_KEY, payload.token)
+function getMessage(error, fallback) {
+  const response = error?.response?.data
+  return response?.msg || response?.message || response?.data || error?.message || fallback
+}
+
+const authToken = ref(readTokenFromStorage())
+const authUser = ref(readUserFromStorage())
+const authLoggedIn = computed(() => Boolean(authToken.value))
+
+function syncAuthStateFromStorage() {
+  authToken.value = readTokenFromStorage()
+  authUser.value = readUserFromStorage()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', syncAuthStateFromStorage)
+}
+
+export function useAuthState() {
+  return {
+    token: readonly(authToken),
+    user: readonly(authUser),
+    isLoggedIn: readonly(authLoggedIn)
   }
-  localStorage.setItem(USER_KEY, JSON.stringify(payload))
+}
+
+export function getToken() {
+  return authToken.value || ''
+}
+
+export function getUser() {
+  return authUser.value
+}
+
+export function saveAuth(payload) {
+  const storage = getStorage()
+  authToken.value = payload?.token || ''
+  authUser.value = payload || null
+
+  if (!storage) return
+
+  if (payload?.token) {
+    storage.setItem(TOKEN_KEY, payload.token)
+  } else {
+    storage.removeItem(TOKEN_KEY)
+  }
+
+  if (payload) {
+    storage.setItem(USER_KEY, JSON.stringify(payload))
+  } else {
+    storage.removeItem(USER_KEY)
+  }
 }
 
 export function clearAuth() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+  authToken.value = ''
+  authUser.value = null
+  const storage = getStorage()
+  if (!storage) return
+  storage.removeItem(TOKEN_KEY)
+  storage.removeItem(USER_KEY)
 }
 
 export function buildAuthHeader(token) {
@@ -61,6 +112,14 @@ export function setAuthRedirectHandler(handler) {
   authRedirectHandler = handler
 }
 
+function handleAuthFailure(payload) {
+  clearAuth()
+  if (authRedirectHandler) {
+    authRedirectHandler(payload)
+  }
+  throw createAuthError(payload?.msg || '登录状态已失效，请重新登录', payload?.code)
+}
+
 export function unwrapApiResponse(response, fallback) {
   if (isAuthErrorCode(response?.code)) {
     throw createAuthError(response?.msg || '登录状态已失效，请重新登录', response?.code)
@@ -72,10 +131,12 @@ export function unwrapApiResponse(response, fallback) {
 }
 
 client.interceptors.request.use((config) => {
-  const token = getToken()
-  const authHeader = buildAuthHeader(token)
+  const authHeader = buildAuthHeader(getToken())
+  config.headers = config.headers || {}
   if (authHeader) {
     config.headers.Authorization = authHeader
+  } else {
+    delete config.headers.Authorization
   }
   return config
 })
@@ -84,22 +145,14 @@ client.interceptors.response.use(
   (response) => {
     const { data } = response
     if (isAuthErrorCode(data?.code)) {
-      clearAuth()
-      if (authRedirectHandler) {
-        authRedirectHandler(data)
-      }
-      throw createAuthError(data?.msg || '登录状态已失效，请重新登录', data?.code)
+      handleAuthFailure(data)
     }
     return response
   },
   (error) => {
     const response = error?.response?.data
     if (isAuthErrorCode(response?.code)) {
-      clearAuth()
-      if (authRedirectHandler) {
-        authRedirectHandler(response)
-      }
-      throw createAuthError(response?.msg || '登录状态已失效，请重新登录', response?.code)
+      handleAuthFailure(response)
     }
     throw error
   }
@@ -110,6 +163,7 @@ export async function login(payload) {
     const { data } = await client.post('/login', payload)
     return unwrapApiResponse(data, '登录失败，请稍后重试')
   } catch (error) {
+    if (error?.isAuthError) throw error
     throw new Error(getMessage(error, '登录失败，请稍后重试'))
   }
 }
@@ -119,6 +173,7 @@ export async function signup(payload) {
     const { data } = await client.post('/signup', payload)
     return unwrapApiResponse(data, '注册失败，请稍后重试')
   } catch (error) {
+    if (error?.isAuthError) throw error
     throw new Error(getMessage(error, '注册失败，请稍后重试'))
   }
 }
