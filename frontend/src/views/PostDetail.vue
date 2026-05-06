@@ -48,7 +48,10 @@ async function loadPage() {
 async function submitVote(direction) {
   if (!getToken()) {
     ElMessage.warning('请先登录后投票')
-    router.push('/login')
+    router.push({
+      path: '/login',
+      query: { redirect: route.fullPath }
+    })
     return
   }
   if (!post.value?.id) return

@@ -3,6 +3,7 @@ package controller
 import (
 	"bluebell/logic"
 	"bluebell/models"
+	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -74,10 +75,15 @@ func GetPostDetailHandler(c *gin.Context) {
 		ResponseError(c, CodeInvalidParam)
 		return
 	}
-	//2.根据id取出帖子数据
+	// 第二步：调用 logic 层。如果帖子不存在，返回明确的业务码，
+	// 而不是把所有错误都包装成“服务繁忙”。
 	data, err := getPostByID(pid)
 	if err != nil {
 		zap.L().Error("logic.GetPostById(pid) failed", zap.Error(err))
+		if errors.Is(err, logic.ErrPostNotFound) {
+			ResponseError(c, CodePostNotFound)
+			return
+		}
 		ResponseError(c, CodeServerBusy)
 		return
 	}
@@ -98,7 +104,7 @@ func GetPostDetailHandler(c *gin.Context) {
 // @Failure 200 {object} Response "参数错误或服务繁忙"
 // @Router /posts2 [get]
 func GetPostListHandler2(c *gin.Context) {
-	//解析query参数到ParamPostList
+	// 先给分页和排序一个默认值，这样前端不传时也能稳定工作。
 	p := &models.ParamPostList{
 		Page:  1,
 		Size:  10,
@@ -109,10 +115,14 @@ func GetPostListHandler2(c *gin.Context) {
 		ResponseError(c, CodeInvalidParam)
 		return
 	}
-	//调用logic层获取数据
+	// logic 层返回统一的帖子列表结构：items + pagination。
 	data, err := getPostListNew(p)
 	if err != nil {
 		zap.L().Error("logic.GetPostListNew failed", zap.Error(err))
+		if errors.Is(err, logic.ErrCommunityNotFound) {
+			ResponseError(c, CodeCommunityNotFound)
+			return
+		}
 		ResponseError(c, CodeServerBusy)
 		return
 	}

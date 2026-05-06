@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bluebell/logic"
+	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -52,10 +53,15 @@ func CommunityDetailHandler(c *gin.Context) {
 		ResponseError(c, CodeInvalidParam)
 		return
 	}
-	//根据id获取详情
+	// 根据 id 获取详情；如果 logic 明确告诉我们“社区不存在”，
+	// 这里返回稳定的业务码，方便前端区分“404 资源不存在”和“服务异常”。
 	data, err := getCommunityDetail(id)
 	if err != nil {
 		zap.L().Error("logic.GetCommunityDetail failed", zap.Error(err))
+		if errors.Is(err, logic.ErrCommunityNotFound) {
+			ResponseError(c, CodeCommunityNotFound)
+			return
+		}
 		ResponseError(c, CodeServerBusy)
 		return
 	}

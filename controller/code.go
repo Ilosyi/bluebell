@@ -12,6 +12,8 @@ const (
 	CodeServerBusy
 	CodeNeedLogin
 	CodeInvalidToken
+	CodePostNotFound
+	CodeCommunityNotFound
 )
 
 var codeMsgMap = map[ResCode]string{
@@ -23,6 +25,8 @@ var codeMsgMap = map[ResCode]string{
 	CodeServerBusy:      "服务繁忙",
 	CodeNeedLogin:       "需要登录",
 	CodeInvalidToken:    "无效的token",
+	CodePostNotFound:     "帖子不存在",
+	CodeCommunityNotFound: "社区不存在",
 }
 
 func (code ResCode) Msg() string {

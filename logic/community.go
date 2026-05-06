@@ -3,6 +3,8 @@ package logic
 import (
 	"bluebell/dao/mysql"
 	"bluebell/models"
+	"database/sql"
+	"errors"
 )
 
 var (
@@ -17,5 +19,12 @@ func GetCommunityList() ([]*models.Community, error) {
 }
 
 func GetCommunityDetail(id int64) (*models.CommunityDetail, error) {
-	return getCommunityDetailByIDFromMySQL(id)
+	detail, err := getCommunityDetailByIDFromMySQL(id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || err.Error() == "无效的ID" {
+			return nil, ErrCommunityNotFound
+		}
+		return nil, err
+	}
+	return detail, nil
 }

@@ -148,6 +148,13 @@ func GetCommunityPostIDsInOrder(p *models.ParamPostList) ([]string, error) {
 	return getIDsFromKey(key, p.Page, p.Size)
 }
 
+// CountPostsInCommunity 返回某个社区下帖子总数。
+// 前端分页条需要真实的 total / total_pages，不能再靠当前页条数猜测。
+func CountPostsInCommunity(communityID int64) (int64, error) {
+	key := getRediskey(KeyCommunitySetPF + strconv.FormatInt(communityID, 10))
+	return rdb.SCard(context.Background(), key).Result()
+}
+
 // getIDsFromKey 从Zset中按分页获取帖子ID列表（倒序）
 func getIDsFromKey(key string, page, size int64) ([]string, error) {
 	start := (page - 1) * size

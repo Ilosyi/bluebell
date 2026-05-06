@@ -540,6 +540,41 @@ img {
   border-top: 1px solid var(--bb-line);
 }
 
+.pagination-bar,
+.pagination-jump {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pagination-bar__item {
+  min-width: 42px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--bb-line);
+  border-radius: 12px;
+  color: var(--bb-ink-700);
+  background: rgba(255, 255, 255, 0.84);
+  cursor: pointer;
+}
+
+.pagination-bar__item.is-active {
+  border-color: rgba(75, 168, 255, 0.24);
+  color: var(--bb-sky-700);
+  background: rgba(235, 247, 255, 0.96);
+  font-weight: 800;
+}
+
+.pagination-bar__item:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.pagination-jump__input {
+  width: 110px;
+}
+
 .forum-sidebar {
   display: flex;
   flex-direction: column;

@@ -14,26 +14,26 @@ func resetPostDeps(t *testing.T) {
 	origGenPostID := genPostID
 	origCreatePostInMySQL := createPostInMySQL
 	origSavePostTimeAndScore := savePostTimeAndScore
-	origGetPostByIDFromMySQL := getPostByIDFromMySQL
-	origGetUserByIDFromMySQL := getUserByIDFromMySQL
-	origGetCommunityDetailByID := getCommunityDetailByID
+	origGetPostBundleByIDFromMySQL := getPostBundleByIDFromMySQL
 	origGetPostIDsInOrder := getPostIDsInOrder
 	origGetCommunityPostIDsInOrder := getCommunityPostIDsInOrder
-	origGetPostListByIDsFromMySQL := getPostListByIDsFromMySQL
+	origGetPostBundlesByIDsFromMySQL := getPostBundlesByIDsFromMySQL
 	origGetPostVoteData := getPostVoteData
 	origGetPostListFromMySQL := getPostListFromMySQL
+	origCountPostsFromMySQL := countPostsFromMySQL
+	origCountPostsInCommunity := countPostsInCommunity
 	t.Cleanup(func() {
 		genPostID = origGenPostID
 		createPostInMySQL = origCreatePostInMySQL
 		savePostTimeAndScore = origSavePostTimeAndScore
-		getPostByIDFromMySQL = origGetPostByIDFromMySQL
-		getUserByIDFromMySQL = origGetUserByIDFromMySQL
-		getCommunityDetailByID = origGetCommunityDetailByID
+		getPostBundleByIDFromMySQL = origGetPostBundleByIDFromMySQL
 		getPostIDsInOrder = origGetPostIDsInOrder
 		getCommunityPostIDsInOrder = origGetCommunityPostIDsInOrder
-		getPostListByIDsFromMySQL = origGetPostListByIDsFromMySQL
+		getPostBundlesByIDsFromMySQL = origGetPostBundlesByIDsFromMySQL
 		getPostVoteData = origGetPostVoteData
 		getPostListFromMySQL = origGetPostListFromMySQL
+		countPostsFromMySQL = origCountPostsFromMySQL
+		countPostsInCommunity = origCountPostsInCommunity
 	})
 }
 
@@ -87,23 +87,20 @@ func TestCreatePost(t *testing.T) {
 
 func TestGetPostById(t *testing.T) {
 	resetPostDeps(t)
-	getPostByIDFromMySQL = func(pid int64) (*models.Post, error) {
+	// 这里把 MySQL 聚合查询和 Redis 票数查询都 stub 掉，
+	// 重点验证 logic 层是否能把两部分数据正确合并成详情响应。
+	getPostBundleByIDFromMySQL = func(pid int64) (*models.ApiPostDetail, error) {
 		if pid != 100 {
 			t.Fatalf("pid = %d, want 100", pid)
 		}
-		return &models.Post{ID: pid, AuthorID: 9, CommunityID: 2, Title: "post"}, nil
-	}
-	getUserByIDFromMySQL = func(userID int64) (*models.User, error) {
-		if userID != 9 {
-			t.Fatalf("userID = %d, want 9", userID)
-		}
-		return &models.User{UserID: userID, Username: "alice"}, nil
-	}
-	getCommunityDetailByID = func(id int64) (*models.CommunityDetail, error) {
-		if id != 2 {
-			t.Fatalf("community id = %d, want 2", id)
-		}
-		return &models.CommunityDetail{ID: id, Name: "go"}, nil
+		return &models.ApiPostDetail{
+			AuthorName: "alice",
+			Post:       &models.Post{ID: pid, AuthorID: 9, CommunityID: 2, Title: "post"},
+			CommunityDetail: &models.CommunityDetail{
+				ID:   2,
+				Name: "go",
+			},
+		}, nil
 	}
 	getPostVoteData = func(ids []string) ([]int64, error) {
 		if !reflect.DeepEqual(ids, []string{"100"}) {
@@ -127,9 +124,10 @@ func TestGetPostListNewRoutesByCommunity(t *testing.T) {
 		communityID   int64
 		wantGlobal    bool
 		wantCommunity bool
+		total         int64
 	}{
-		{name: "global", wantGlobal: true},
-		{name: "community", communityID: 3, wantCommunity: true},
+		{name: "global", wantGlobal: true, total: 42},
+		{name: "community", communityID: 3, wantCommunity: true, total: 11},
 	}
 
 	for _, tt := range tests {
@@ -137,7 +135,15 @@ func TestGetPostListNewRoutesByCommunity(t *testing.T) {
 			resetPostDeps(t)
 			globalCalled := false
 			communityCalled := false
+			// 列表的主体数据这里统一 stub，测试重点放在“路由到哪条榜单逻辑”和“分页元数据是否正确”。
 			stubPostsByIDs(t)
+			countPostsFromMySQL = func() (int64, error) { return tt.total, nil }
+			countPostsInCommunity = func(communityID int64) (int64, error) {
+				if communityID != tt.communityID {
+					t.Fatalf("communityID = %d, want %d", communityID, tt.communityID)
+				}
+				return tt.total, nil
+			}
 
 			getPostIDsInOrder = func(p *models.ParamPostList) ([]string, error) {
 				globalCalled = true
@@ -148,12 +154,15 @@ func TestGetPostListNewRoutesByCommunity(t *testing.T) {
 				return []string{"11"}, nil
 			}
 
-			_, err := GetPostListNew(&models.ParamPostList{CommunityID: tt.communityID, Page: 1, Size: 10, Order: "time"})
+			got, err := GetPostListNew(&models.ParamPostList{CommunityID: tt.communityID, Page: 1, Size: 10, Order: "time"})
 			if err != nil {
 				t.Fatalf("GetPostListNew error: %v", err)
 			}
 			if globalCalled != tt.wantGlobal || communityCalled != tt.wantCommunity {
 				t.Fatalf("globalCalled=%v communityCalled=%v, want %v/%v", globalCalled, communityCalled, tt.wantGlobal, tt.wantCommunity)
+			}
+			if got.Pagination.Total != tt.total {
+				t.Fatalf("total = %d, want %d", got.Pagination.Total, tt.total)
 			}
 		})
 	}
@@ -184,13 +193,23 @@ func TestGetPostListByIDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resetPostDeps(t)
-			getPostListByIDsFromMySQL = func(ids []int64) ([]*models.Post, error) {
+			// 这里验证两个点：
+			// 1. 非法字符串 ID 会被跳过
+			// 2. MySQL 返回的聚合详情与 Redis 票数会按顺序合并
+			getPostBundlesByIDsFromMySQL = func(ids []int64) ([]*models.ApiPostDetail, error) {
 				if !reflect.DeepEqual(ids, tt.wantIDs) {
 					t.Fatalf("ids = %#v, want %#v", ids, tt.wantIDs)
 				}
-				posts := make([]*models.Post, 0, len(ids))
+				posts := make([]*models.ApiPostDetail, 0, len(ids))
 				for _, id := range ids {
-					posts = append(posts, &models.Post{ID: id, AuthorID: 1, CommunityID: 2})
+					posts = append(posts, &models.ApiPostDetail{
+						AuthorName: "alice",
+						Post:       &models.Post{ID: id, AuthorID: 1, CommunityID: 2},
+						CommunityDetail: &models.CommunityDetail{
+							ID:   2,
+							Name: "go",
+						},
+					})
 				}
 				return posts, nil
 			}
@@ -200,13 +219,6 @@ func TestGetPostListByIDs(t *testing.T) {
 				}
 				return tt.wantVotes, nil
 			}
-			getUserByIDFromMySQL = func(userID int64) (*models.User, error) {
-				return &models.User{UserID: userID, Username: "alice"}, nil
-			}
-			getCommunityDetailByID = func(id int64) (*models.CommunityDetail, error) {
-				return &models.CommunityDetail{ID: id, Name: "go"}, nil
-			}
-
 			got, err := getPostListByIDs(tt.ids)
 			if err != nil {
 				t.Fatalf("getPostListByIDs error: %v", err)
@@ -250,16 +262,17 @@ func TestGetPostList(t *testing.T) {
 
 func stubPostsByIDs(t *testing.T) {
 	t.Helper()
-	getPostListByIDsFromMySQL = func(ids []int64) ([]*models.Post, error) {
-		return []*models.Post{{ID: ids[0], AuthorID: 1, CommunityID: 2}}, nil
+	getPostBundlesByIDsFromMySQL = func(ids []int64) ([]*models.ApiPostDetail, error) {
+		return []*models.ApiPostDetail{{
+			AuthorName: "alice",
+			Post:       &models.Post{ID: ids[0], AuthorID: 1, CommunityID: 2},
+			CommunityDetail: &models.CommunityDetail{
+				ID:   2,
+				Name: "go",
+			},
+		}}, nil
 	}
 	getPostVoteData = func(ids []string) ([]int64, error) {
 		return []int64{1}, nil
-	}
-	getUserByIDFromMySQL = func(userID int64) (*models.User, error) {
-		return &models.User{UserID: userID, Username: "alice"}, nil
-	}
-	getCommunityDetailByID = func(id int64) (*models.CommunityDetail, error) {
-		return &models.CommunityDetail{ID: id, Name: "go"}, nil
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"bluebell/logic"
 	"bluebell/models"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,17 @@ type responseBody struct {
 	Code int64           `json:"code"`
 	Msg  any             `json:"msg"`
 	Data json.RawMessage `json:"data"`
+}
+
+type postListResponse struct {
+	Items      []json.RawMessage `json:"items"`
+	Pagination struct {
+		Page       int64 `json:"page"`
+		Size       int64 `json:"size"`
+		Total      int64 `json:"total"`
+		TotalPages int64 `json:"total_pages"`
+		HasMore    bool  `json:"has_more"`
+	} `json:"pagination"`
 }
 
 func resetControllerDeps(t *testing.T) {
@@ -240,6 +252,17 @@ func TestHandlerPostCommunityVote(t *testing.T) {
 			want: int64(CodeSuccess),
 		},
 		{
+			name:   "post detail not found",
+			method: http.MethodGet,
+			path:   "/post/404",
+			setup: func() {
+				getPostByID = func(id int64) (*models.ApiPostDetail, error) {
+					return nil, logic.ErrPostNotFound
+				}
+			},
+			want: int64(CodePostNotFound),
+		},
+		{
 			name:   "post list success",
 			method: http.MethodGet,
 			path:   "/posts?page=1&size=10",
@@ -255,8 +278,17 @@ func TestHandlerPostCommunityVote(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/posts2?page=1&size=10&order=time",
 			setup: func() {
-				getPostListNew = func(p *models.ParamPostList) ([]*models.ApiPostDetail, error) {
-					return []*models.ApiPostDetail{{AuthorName: "alice"}}, nil
+				getPostListNew = func(p *models.ParamPostList) (*models.ApiPostList, error) {
+					return &models.ApiPostList{
+						Items: []*models.ApiPostDetail{{AuthorName: "alice"}},
+						Pagination: models.Pagination{
+							Page:       1,
+							Size:       10,
+							Total:      35,
+							TotalPages: 4,
+							HasMore:    true,
+						},
+					}, nil
 				}
 			},
 			want: int64(CodeSuccess),
@@ -323,6 +355,15 @@ func TestHandlerPostCommunityVote(t *testing.T) {
 			}
 			if got.Code != tt.want {
 				t.Fatalf("code = %d, want %d, body=%s", got.Code, tt.want, w.Body.String())
+			}
+			if tt.name == "post list new success" {
+				var payload postListResponse
+				if err := json.Unmarshal(got.Data, &payload); err != nil {
+					t.Fatalf("unmarshal post list payload error: %v", err)
+				}
+				if payload.Pagination.Total != 35 || payload.Pagination.TotalPages != 4 || !payload.Pagination.HasMore {
+					t.Fatalf("unexpected pagination payload: %#v", payload.Pagination)
+				}
 			}
 		})
 	}

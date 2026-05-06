@@ -20,3 +20,18 @@ type ApiPostDetail struct {
 	*Post            `json:"post"`      // 帖子详情
 	*CommunityDetail `json:"community"` // 所属社区信息
 }
+
+type Pagination struct {
+	Page       int64 `json:"page"`
+	Size       int64 `json:"size"`
+	Total      int64 `json:"total"`
+	TotalPages int64 `json:"total_pages"`
+	HasMore    bool  `json:"has_more"`
+}
+
+// ApiPostList 统一帖子列表响应结构：
+// Items 放当前页数据，Pagination 放分页元信息。
+type ApiPostList struct {
+	Items      []*ApiPostDetail `json:"items"`
+	Pagination Pagination       `json:"pagination"`
+}

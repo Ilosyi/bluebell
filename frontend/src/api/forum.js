@@ -58,7 +58,17 @@ export async function fetchPosts(params = {}) {
   const { data } = await client.get('/posts2', {
     params: formatPageParams(params)
   })
-  return unwrap(data, '帖子列表加载失败').map(normalizePost)
+  const payload = unwrap(data, '帖子列表加载失败')
+  return {
+    items: (payload.items || []).map(normalizePost),
+    pagination: payload.pagination || {
+      page: 1,
+      size: params.size || 20,
+      total: 0,
+      totalPages: 1,
+      hasMore: false
+    }
+  }
 }
 
 export async function fetchPostDetail(id) {

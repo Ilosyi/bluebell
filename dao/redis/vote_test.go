@@ -130,6 +130,23 @@ func TestGetCommunityPostIDsInOrder(t *testing.T) {
 	}
 }
 
+func TestCountPostsInCommunity(t *testing.T) {
+	setupRedis(t)
+	ctx := context.Background()
+	// 模拟社区 2 下已经有 3 个帖子，验证分页总数统计是否准确。
+	if _, err := rdb.SAdd(ctx, getRediskey(KeyCommunitySetPF+"2"), "10", "30", "40").Result(); err != nil {
+		t.Fatalf("SAdd error: %v", err)
+	}
+
+	got, err := CountPostsInCommunity(2)
+	if err != nil {
+		t.Fatalf("CountPostsInCommunity error: %v", err)
+	}
+	if got != 3 {
+		t.Fatalf("count = %d, want 3", got)
+	}
+}
+
 func TestGetPostVoteData(t *testing.T) {
 	setupRedis(t)
 	ctx := context.Background()
