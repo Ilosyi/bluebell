@@ -6,6 +6,16 @@
 
 - 后端：Go + Gin 提供 REST API
 - 前端：Vue 3 + Element Plus 提供论坛界面
+- 
+## 快速开始
+
+可前往cnb.cool平台fork[仓库](https://cnb.cool/HUST_losyi/bluebell)
+点击云原生开发，在终端运行下面命令
+```bash
+docker compose up -d
+```
+
+启动后，在 **PORTS** 中添加 `80` 端口（如果使用 Docker Desktop），然后打开 **Forwarded Address**（如 `https://zsh7nt5ioi-80.cnb.run/`）即可体验论坛。
 
 ## 项目目标
 
