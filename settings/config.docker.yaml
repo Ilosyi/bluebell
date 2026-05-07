@@ -1,0 +1,38 @@
+app:
+  name: "bluebell"
+  mode: "release"
+  port: 8080
+  start_time: "2026-01-01"
+  machine_id: 1
+  enable_swagger: false
+
+log:
+  level: "info"
+  filename: "/app/logs/bluebell.log"
+  max_size: 200
+  max_age: 30
+  max_backups: 7
+
+mysql:
+  host: "mysql"
+  port: 3306
+  user: "bluebell"
+  password: "bluebell_password"
+  dbname: "bluebell"
+  max_open_conns: 80
+  max_idle_conns: 20
+
+redis:
+  host: "redis"
+  port: 6379
+  password: "bluebell_redis_password"
+  db: 0
+
+jwt:
+  secret: "please_change_this_secret_before_deploy"
+  expire_seconds: 86400
+
+rate_limit:
+  enabled: true
+  rate: 100
+  capacity: 200

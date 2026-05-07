@@ -37,7 +37,10 @@ func Setup() *gin.Engine {
 		middlewares.RateLimitMiddleware(rateLimitCfg))
 
 	// Swagger 文档入口。
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// 生产环境通常不应该暴露接口文档，因此这里通过配置开关控制。
+	if settings.GlobalConfig != nil && settings.GlobalConfig.App.EnableSwagger {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	// 所有业务接口统一挂在 /api/v1 下。
 	v1 := r.Group("/api/v1")

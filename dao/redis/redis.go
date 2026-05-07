@@ -30,7 +30,7 @@ func Init() (err error) {
 	// NewClient 不会立刻验证连接，真正的连通性检查在后面的 Ping。
 	rdb = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", settings.GlobalConfig.Redis.Host, settings.GlobalConfig.Redis.Port),
-		Password: "",
+		Password: settings.GlobalConfig.Redis.Password,
 		DB:       settings.GlobalConfig.Redis.DB,
 	})
 

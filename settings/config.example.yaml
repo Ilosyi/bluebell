@@ -4,6 +4,7 @@ app:
   port: 8080
   start_time: "2026-01-01"
   machine_id: 1
+  enable_swagger: true
 
 log:
   level: "debug"
@@ -24,6 +25,7 @@ mysql:
 redis:
   host: "localhost"
   port: 6379
+  password: ""
   db: 0
 
 jwt:

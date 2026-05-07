@@ -302,6 +302,70 @@ npm run dev
 
 默认通过 Vite 启动本地开发服务。
 
+## Docker 部署
+
+项目提供了一套面向部署的 Docker Compose 编排，包含：
+
+- `nginx`：托管前端静态资源，并反向代理 `/api/` 到后端。
+- `backend`：运行 Go API 服务。
+- `mysql`：保存用户、社区、帖子等持久化数据。
+- `redis`：保存帖子排序、投票记录、社区帖子集合等数据。
+
+### 1. 生产配置
+
+Docker 环境使用单独配置文件：
+
+- `settings/config.docker.yaml`
+
+该配置默认：
+
+- `app.mode` 设置为 `release`
+- `app.enable_swagger` 设置为 `false`
+- 日志级别为 `info`
+- MySQL 主机名为 Compose 服务名 `mysql`
+- Redis 主机名为 Compose 服务名 `redis`
+
+部署前必须修改：
+
+- `settings/config.docker.yaml` 中的 `jwt.secret`
+- `docker-compose.yml` 中的 MySQL 密码
+- `settings/config.docker.yaml` 中对应的 MySQL 密码
+- `docker-compose.yml` 中的 Redis `--requirepass`
+- `settings/config.docker.yaml` 中对应的 Redis 密码
+
+### 2. 启动服务
+
+```bash
+docker compose up -d --build
+```
+
+启动后访问：
+
+- 前端页面：`http://localhost/`
+- 后端健康检查：`http://localhost/api/v1/ping`
+
+### 3. 查看状态和日志
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f nginx
+```
+
+### 4. 停止服务
+
+```bash
+docker compose down
+```
+
+如果需要连同 MySQL 和 Redis 数据一起删除：
+
+```bash
+docker compose down -v
+```
+
+注意：`docker-compose.yml` 会在 MySQL 首次初始化时执行 `models/create_tables.sql` 和 `deploy/mysql/02_seed.sql`。如果 `mysql_data` 数据卷已经存在，MySQL 官方镜像不会重复执行初始化 SQL。
+
 ## 开发建议
 
 如果你想快速读懂这个项目，推荐阅读顺序如下：

@@ -27,11 +27,12 @@ type Config struct {
 // AppConfig 保存应用自身配置。
 // StartTime 和 MachineID 会传给雪花算法，用于生成业务 ID。
 type AppConfig struct {
-	Name      string `mapstructure:"name"`
-	Mode      string `mapstructure:"mode"`
-	Port      int    `mapstructure:"port"`
-	StartTime string `mapstructure:"start_time"`
-	MachineID int64  `mapstructure:"machine_id"`
+	Name          string `mapstructure:"name"`
+	Mode          string `mapstructure:"mode"`
+	Port          int    `mapstructure:"port"`
+	StartTime     string `mapstructure:"start_time"`
+	MachineID     int64  `mapstructure:"machine_id"`
+	EnableSwagger bool   `mapstructure:"enable_swagger"`
 }
 
 // LogConfig 保存日志配置。
@@ -56,11 +57,12 @@ type MySQLConfig struct {
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 }
 
-// RedisConfig 保存 Redis 地址与数据库编号。
+// RedisConfig 保存 Redis 地址、密码与数据库编号。
 type RedisConfig struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	DB   int    `mapstructure:"db"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
 }
 
 // JWTConfig 保存 JWT 签名密钥和过期时间。
@@ -88,16 +90,22 @@ type RateLimitConfig struct {
 
 // Init 初始化配置。
 // 调用流程：
-// 1. 优先使用 settings/config.yaml。
-// 2. 如果本地配置不存在，则回退到 settings/config.example.yaml。
-// 3. 使用 viper 读取 yaml，并反序列化到 GlobalConfig。
-// 4. 监听配置文件变更，变更后自动重新加载。
+// 1. 如果 BLUEBELL_CONFIG_FILE 环境变量存在，就优先读取它指定的配置文件。
+// 2. 否则优先使用 settings/config.yaml。
+// 3. 如果本地配置不存在，则回退到 settings/config.example.yaml。
+// 4. 使用 viper 读取 yaml，并反序列化到 GlobalConfig。
+// 5. 监听配置文件变更，变更后自动重新加载。
 func Init() (err error) {
-	// 默认读取本地开发配置。
-	configPath := "./settings/config.yaml"
-	// 如果本地配置不存在，则读取示例配置，方便首次启动。
-	if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
-		configPath = "./settings/config.example.yaml"
+	// Docker/生产环境通常不希望把配置文件固定成 settings/config.yaml。
+	// 因此这里先读取环境变量，让容器可以通过 BLUEBELL_CONFIG_FILE 指向专用配置。
+	configPath := os.Getenv("BLUEBELL_CONFIG_FILE")
+	if configPath == "" {
+		// 默认读取本地开发配置。
+		configPath = "./settings/config.yaml"
+		// 如果本地配置不存在，则读取示例配置，方便首次启动。
+		if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
+			configPath = "./settings/config.example.yaml"
+		}
 	}
 
 	// 告诉 viper 配置文件的路径。

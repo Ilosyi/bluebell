@@ -1,0 +1,17 @@
+.git
+.github
+.idea
+.vscode
+.agent
+.claude
+AGENT.md
+tmp
+*.log
+bluebell
+bin
+frontend/node_modules
+frontend/dist
+frontend/.vite
+node_modules
+dist
+coverage
