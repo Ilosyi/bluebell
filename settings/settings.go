@@ -14,13 +14,14 @@ import (
 var GlobalConfig *Config
 
 // Config 对应 settings/config.yaml 的顶层结构。
-// mapstructure tag 告诉 viper：yaml 里的 app/log/mysql/redis/jwt 分别映射到哪个字段。
+// mapstructure tag 告诉 viper：yaml 里的 app/log/mysql/redis/jwt/rate_limit 分别映射到哪个字段。
 type Config struct {
-	App   AppConfig   `mapstructure:"app"`
-	Log   LogConfig   `mapstructure:"log"`
-	MySQL MySQLConfig `mapstructure:"mysql"`
-	Redis RedisConfig `mapstructure:"redis"`
-	JWT   JWTConfig   `mapstructure:"jwt"`
+	App       AppConfig       `mapstructure:"app"`
+	Log       LogConfig       `mapstructure:"log"`
+	MySQL     MySQLConfig     `mapstructure:"mysql"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	JWT       JWTConfig       `mapstructure:"jwt"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
 // AppConfig 保存应用自身配置。
@@ -67,6 +68,22 @@ type RedisConfig struct {
 type JWTConfig struct {
 	Secret        string `mapstructure:"secret"`
 	ExpireSeconds int64  `mapstructure:"expire_seconds"`
+}
+
+// RateLimitConfig 保存全局令牌桶限流配置。
+//
+// Enabled 用来控制是否启用限流，开发调试时如果觉得频率太低，可以临时改成 false。
+// Rate 表示“每秒往桶里放多少个令牌”，例如 100 表示平均每秒允许 100 个请求通过。
+// Capacity 表示“桶最多能存多少个令牌”，容量越大，越能容忍短时间突发流量。
+//
+// 令牌桶可以这样理解：
+// 1. 桶里有令牌，请求拿走 1 个令牌后继续执行。
+// 2. 桶里没有令牌，请求被限流。
+// 3. 后台会按 Rate 的速度持续补充令牌，但最多补到 Capacity。
+type RateLimitConfig struct {
+	Enabled  bool    `mapstructure:"enabled"`
+	Rate     float64 `mapstructure:"rate"`
+	Capacity int64   `mapstructure:"capacity"`
 }
 
 // Init 初始化配置。

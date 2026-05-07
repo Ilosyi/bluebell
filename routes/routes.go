@@ -27,9 +27,14 @@ func Setup() *gin.Engine {
 	// 创建一个“空白”的 Gin 引擎。
 	// gin.New() 不会自动挂载 Logger/Recovery，所以我们下面自己挂自定义版本。
 	r := gin.New()
+	var rateLimitCfg *settings.RateLimitConfig
+	if settings.GlobalConfig != nil {
+		rateLimitCfg = &settings.GlobalConfig.RateLimit
+	}
 	r.Use(
 		logger.GinLogger(),
-		logger.GinRecovery(true))
+		logger.GinRecovery(true),
+		middlewares.RateLimitMiddleware(rateLimitCfg))
 
 	// Swagger 文档入口。
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

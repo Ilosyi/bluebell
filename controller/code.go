@@ -21,6 +21,7 @@ const (
 	CodeForbidden
 	CodePostNotReady
 	CodeNicknameExist
+	CodeTooManyRequests
 )
 
 // codeMsgMap 用来把业务码映射成默认消息。
@@ -39,6 +40,7 @@ var codeMsgMap = map[ResCode]string{
 	CodeForbidden:         "无权限操作",
 	CodePostNotReady:      "草稿内容不完整，不能发布",
 	CodeNicknameExist:     "昵称已存在",
+	CodeTooManyRequests:   "请求过于频繁，请稍后再试",
 }
 
 // Msg 根据业务码返回默认消息。

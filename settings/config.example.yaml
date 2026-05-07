@@ -30,3 +30,7 @@ jwt:
   secret: "change_me"
   expire_seconds: 86400
 
+rate_limit:
+  enabled: true
+  rate: 100
+  capacity: 200

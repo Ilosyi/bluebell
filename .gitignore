@@ -1,7 +1,7 @@
 .claude/
 .agent/
 .idea/
-
+AGENT.md
 # Local configuration
 settings/config.yaml
 
