@@ -19,8 +19,8 @@ const form = reactive({
 
 const rules = {
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 20, message: '用户名长度为 2-20 位', trigger: 'blur' }
+    { required: true, message: '请输入账号或昵称', trigger: 'blur' },
+    { min: 2, max: 32, message: '账号或昵称长度为 2-32 位', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -84,8 +84,8 @@ async function submit() {
       />
 
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model.trim="form.username" placeholder="请输入用户名" clearable />
+        <el-form-item label="账号 / 昵称" prop="username">
+          <el-input v-model.trim="form.username" placeholder="请输入账号或昵称" clearable />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input v-model="form.password" placeholder="请输入密码" show-password type="password" @keyup.enter="submit" />

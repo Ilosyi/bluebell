@@ -15,6 +15,7 @@ export function useForumList() {
   const activeOrder = ref('time')
   const activeCommunityID = ref('')
   const activeCommunity = ref(null)
+  const activeKeyword = ref('')
   const errorMessage = ref('')
   const page = ref(1)
   const total = ref(0)
@@ -28,6 +29,7 @@ export function useForumList() {
   ]
 
   const activeCommunityLabel = computed(() => {
+    if (activeKeyword.value) return `搜索：${activeKeyword.value}`
     if (!activeCommunityID.value) return '全部主题'
     return communities.value.find((item) => item.id === activeCommunityID.value)?.name || '当前节点'
   })
@@ -76,6 +78,7 @@ export function useForumList() {
       const result = await fetchPosts({
         order: activeOrder.value,
         communityID: activeCommunityID.value,
+        keyword: activeKeyword.value,
         page: page.value,
         size: PAGE_SIZE
       })
@@ -97,6 +100,7 @@ export function useForumList() {
   function buildQuery() {
     return {
       ...(activeCommunityID.value ? { community: activeCommunityID.value } : {}),
+      ...(activeKeyword.value ? { q: activeKeyword.value } : {}),
       ...(activeOrder.value !== 'time' ? { order: activeOrder.value } : {}),
       ...(page.value > 1 ? { page: String(page.value) } : {})
     }
@@ -119,6 +123,11 @@ export function useForumList() {
     page.value = 1
   }
 
+  function changeKeyword(keyword) {
+    activeKeyword.value = keyword.trim()
+    page.value = 1
+  }
+
   function goPage(nextPage) {
     if (nextPage < 1 || nextPage > totalPages.value || nextPage === page.value) return
     page.value = nextPage
@@ -132,7 +141,7 @@ export function useForumList() {
     }
   }
 
-  watch([activeOrder, activeCommunityID, page], () => {
+  watch([activeOrder, activeCommunityID, activeKeyword, page], () => {
     if (!initialized.value) return
     updateQuery()
     loadPosts()
@@ -153,6 +162,9 @@ export function useForumList() {
     if (typeof route.query.order === 'string' && ['time', 'score'].includes(route.query.order)) {
       activeOrder.value = route.query.order
     }
+    if (typeof route.query.q === 'string') {
+      activeKeyword.value = route.query.q.trim()
+    }
     if (typeof route.query.page === 'string') {
       const parsed = Number(route.query.page)
       page.value = parsed > 0 ? parsed : 1
@@ -169,6 +181,7 @@ export function useForumList() {
     activeOrder,
     activeCommunityID,
     activeCommunity,
+    activeKeyword,
     errorMessage,
     page,
     total,
@@ -182,6 +195,7 @@ export function useForumList() {
     visiblePages,
     changeOrder,
     changeCommunity,
+    changeKeyword,
     goPage,
     refreshAll,
     initialize

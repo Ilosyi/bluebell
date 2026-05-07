@@ -8,10 +8,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// GlobalConfig 全局配置
+// GlobalConfig 保存整个项目运行时的全局配置。
+// 其他包通过 settings.GlobalConfig 读取配置，例如 MySQL 地址、Redis 地址、JWT 密钥。
+// 注意：它在 settings.Init 成功后才会有值，因此 main.go 必须最先调用 settings.Init。
 var GlobalConfig *Config
 
-// Config 配置结构体
+// Config 对应 settings/config.yaml 的顶层结构。
+// mapstructure tag 告诉 viper：yaml 里的 app/log/mysql/redis/jwt 分别映射到哪个字段。
 type Config struct {
 	App   AppConfig   `mapstructure:"app"`
 	Log   LogConfig   `mapstructure:"log"`
@@ -20,6 +23,8 @@ type Config struct {
 	JWT   JWTConfig   `mapstructure:"jwt"`
 }
 
+// AppConfig 保存应用自身配置。
+// StartTime 和 MachineID 会传给雪花算法，用于生成业务 ID。
 type AppConfig struct {
 	Name      string `mapstructure:"name"`
 	Mode      string `mapstructure:"mode"`
@@ -28,6 +33,8 @@ type AppConfig struct {
 	MachineID int64  `mapstructure:"machine_id"`
 }
 
+// LogConfig 保存日志配置。
+// MaxSize/MaxAge/MaxBackups 用于控制日志文件切割和保留策略。
 type LogConfig struct {
 	Level      string `mapstructure:"level"`
 	Filename   string `mapstructure:"filename"`
@@ -36,6 +43,8 @@ type LogConfig struct {
 	MaxBackups int    `mapstructure:"max_backups"`
 }
 
+// MySQLConfig 保存 MySQL 连接配置和连接池配置。
+// MaxOpenConns/MaxIdleConns 可以避免高并发时无限创建数据库连接。
 type MySQLConfig struct {
 	Host         string `mapstructure:"host"`
 	Port         int    `mapstructure:"port"`
@@ -46,39 +55,55 @@ type MySQLConfig struct {
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 }
 
+// RedisConfig 保存 Redis 地址与数据库编号。
 type RedisConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
 	DB   int    `mapstructure:"db"`
 }
 
+// JWTConfig 保存 JWT 签名密钥和过期时间。
+// Secret 用于签名和验签，泄露后攻击者可能伪造 token。
 type JWTConfig struct {
 	Secret        string `mapstructure:"secret"`
 	ExpireSeconds int64  `mapstructure:"expire_seconds"`
 }
 
-// Init 初始化配置
+// Init 初始化配置。
+// 调用流程：
+// 1. 优先使用 settings/config.yaml。
+// 2. 如果本地配置不存在，则回退到 settings/config.example.yaml。
+// 3. 使用 viper 读取 yaml，并反序列化到 GlobalConfig。
+// 4. 监听配置文件变更，变更后自动重新加载。
 func Init() (err error) {
+	// 默认读取本地开发配置。
 	configPath := "./settings/config.yaml"
+	// 如果本地配置不存在，则读取示例配置，方便首次启动。
 	if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
 		configPath = "./settings/config.example.yaml"
 	}
 
+	// 告诉 viper 配置文件的路径。
 	viper.SetConfigFile(configPath)
+	// 真正读取配置文件内容。
 	err = viper.ReadInConfig()
 	if err != nil {
 		fmt.Printf("viper.ReadInConfig() failed with %s\n", err)
 		return
 	}
 
+	// 把 yaml 内容映射到 Config 结构体。
 	err = viper.Unmarshal(&GlobalConfig)
 	if err != nil {
 		fmt.Printf("viper.Unmarshal() failed with %s\n", err)
 		return
 	}
+
+	// 监听配置文件变化。开发时修改配置后，不需要重启进程即可更新 GlobalConfig。
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		fmt.Println("Config file changed:", e.Name)
+		// 重新解析配置。这里没有中断程序，适合开发环境热更新配置。
 		viper.Unmarshal(&GlobalConfig)
 	})
 	return

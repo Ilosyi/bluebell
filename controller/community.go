@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	// 通过包级变量接 logic 函数，便于测试时替换为 mock/stub。
 	getCommunityList   = logic.GetCommunityList
 	getCommunityDetail = logic.GetCommunityDetail
 )
@@ -23,11 +24,12 @@ var (
 // @Failure 200 {object} Response "服务繁忙"
 // @Router /community [get]
 func CommunityHandler(c *gin.Context) {
-	//查询所有社区（id、name），以列表（切片）形式返回
+	// 调用 logic 层获取所有社区。
+	// data 的类型是 []*models.Community，也就是“社区切片”。
 	data, err := getCommunityList()
 	if err != nil {
 		zap.L().Error("logic.GetCommunityList failed", zap.Error(err))
-		//不轻易把服务端报错暴露给外面
+		// 不把底层数据库错误直接暴露给前端，统一返回服务繁忙。
 		ResponseError(c, CodeServerBusy)
 		return
 	}
@@ -44,12 +46,14 @@ func CommunityHandler(c *gin.Context) {
 // @Failure 200 {object} Response "参数错误或服务繁忙"
 // @Router /community/{id} [get]
 func CommunityDetailHandler(c *gin.Context) {
-	//获取id
-	strId := c.Param("id") //获取url参数
+	// 先从路由参数中取出 id，例如 /community/3 中的 3。
+	strId := c.Param("id")
 
-	id, err := strconv.ParseInt(strId, 10, 64) //格式转换
+	// 把字符串 id 转成 int64。
+	// ParseInt 的第二个参数 10 表示按十进制解析。
+	id, err := strconv.ParseInt(strId, 10, 64)
 	if err != nil {
-		//zap.L().Error("strconv.ParseInt failed", zap.Error(err))
+		// 只要 URL 里的 id 不是合法数字，就直接判定为参数错误。
 		ResponseError(c, CodeInvalidParam)
 		return
 	}

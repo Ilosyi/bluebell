@@ -1,22 +1,47 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { PenSquare } from 'lucide-vue-next'
 import ForumHeader from '../components/ForumHeader.vue'
 import ForumSidebar from '../components/ForumSidebar.vue'
-import { createPost, fetchCommunities } from '../api/forum'
+import {
+  createDraft,
+  createPost,
+  fetchCommunities,
+  fetchMyPostDetail,
+  publishDraft,
+  updateDraft,
+  updatePost
+} from '../api/forum'
 import { forumConfig } from '../config/forum'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref()
 const loading = ref(false)
+const draftLoading = ref(false)
+const pageLoading = ref(false)
 const communities = ref([])
+const editingStatus = ref(1)
 
 const form = reactive({
   title: '',
   content: '',
   community_id: ''
+})
+
+const editingID = computed(() => (route.params.id == null ? '' : String(route.params.id)))
+const isEditMode = computed(() => Boolean(editingID.value))
+const isDraftEdit = computed(() => isEditMode.value && editingStatus.value === 0)
+const pageTitle = computed(() => {
+  if (!isEditMode.value) return '发布新主题'
+  return isDraftEdit.value ? '编辑草稿' : '编辑主题'
+})
+const pageLead = computed(() => {
+  if (isDraftEdit.value) return '完善草稿内容，确认后可以直接发布。'
+  if (isEditMode.value) return '更新标题、正文或所属节点。'
+  return '写下你的问题、经验或想法。'
 })
 
 const rules = {
@@ -29,6 +54,23 @@ async function loadCommunities() {
   communities.value = await fetchCommunities()
 }
 
+async function loadEditingPost() {
+  if (!editingID.value) return
+  const post = await fetchMyPostDetail(editingID.value)
+  editingStatus.value = Number(post.status ?? 1)
+  form.title = post.title || ''
+  form.content = post.content || ''
+  form.community_id = post.communityID ? String(post.communityID) : ''
+}
+
+function buildPayload() {
+  return {
+    title: form.title,
+    content: form.content,
+    community_id: Number(form.community_id)
+  }
+}
+
 async function submit() {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
@@ -36,11 +78,21 @@ async function submit() {
 
   loading.value = true
   try {
-    await createPost({
-      title: form.title,
-      content: form.content,
-      community_id: Number(form.community_id)
-    })
+    const payload = buildPayload()
+    if (isEditMode.value && editingStatus.value === 1) {
+      const post = await updatePost(editingID.value, payload)
+      ElMessage.success('主题已更新')
+      router.push(`/post/${post.id}`)
+      return
+    }
+    if (isEditMode.value && editingStatus.value === 0) {
+      await updateDraft(editingID.value, payload)
+      const post = await publishDraft(editingID.value)
+      ElMessage.success('草稿已发布')
+      router.push(`/post/${post.id}`)
+      return
+    }
+    await createPost(payload)
     ElMessage.success('主题已发布')
     router.push('/')
   } catch (error) {
@@ -50,7 +102,41 @@ async function submit() {
   }
 }
 
-onMounted(loadCommunities)
+async function saveDraft() {
+  if (!form.community_id) {
+    ElMessage.warning('请先选择节点')
+    return
+  }
+  draftLoading.value = true
+  try {
+    const payload = buildPayload()
+    if (isEditMode.value && editingStatus.value === 0) {
+      await updateDraft(editingID.value, payload)
+      ElMessage.success('草稿已保存')
+      return
+    }
+    const draft = await createDraft(payload)
+    editingStatus.value = 0
+    ElMessage.success('草稿已保存')
+    router.replace(`/post/${draft.id}/edit`)
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    draftLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  pageLoading.value = true
+  try {
+    await loadCommunities()
+    await loadEditingPost()
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    pageLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -59,12 +145,12 @@ onMounted(loadCommunities)
 
     <main class="forum-layout">
       <section class="forum-main">
-        <section class="editor-panel">
+        <section class="editor-panel" v-loading="pageLoading">
           <header class="editor-panel__head">
             <div>
-              <p class="topic-toolbar__eyebrow">新主题</p>
-              <h1>发布新主题</h1>
-              <p class="editor-panel__lead">写下你的问题、经验或想法。</p>
+              <p class="topic-toolbar__eyebrow">{{ isEditMode ? '主题管理' : '新主题' }}</p>
+              <h1>{{ pageTitle }}</h1>
+              <p class="editor-panel__lead">{{ pageLead }}</p>
             </div>
             <div class="editor-panel__badge">
               <PenSquare :size="16" />
@@ -99,9 +185,18 @@ onMounted(loadCommunities)
             </el-form-item>
 
             <div class="editor-actions">
-              <button class="site-action" type="button" @click="$router.push('/')">取消</button>
+              <button class="site-action" type="button" @click="$router.push(isEditMode ? '/profile' : '/')">取消</button>
+              <button
+                v-if="!isEditMode || isDraftEdit"
+                class="site-action"
+                type="button"
+                :disabled="draftLoading || loading"
+                @click="saveDraft"
+              >
+                {{ draftLoading ? '保存中...' : '保存草稿' }}
+              </button>
               <button class="site-action site-action--primary" type="button" :disabled="loading" @click="submit">
-                {{ loading ? '发布中...' : '发布主题' }}
+                {{ loading ? '处理中...' : isEditMode && !isDraftEdit ? '保存修改' : '发布主题' }}
               </button>
             </div>
           </el-form>

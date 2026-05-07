@@ -2,9 +2,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Leaf, ShieldPlus } from 'lucide-vue-next'
-import ForumHeader from '../components/ForumHeader.vue'
-import heroUrl from '../assets/hero.png'
+import { Leaf, MessageCircle, ShieldPlus, Sparkles } from 'lucide-vue-next'
 import { signup } from '../api/auth'
 import { forumConfig } from '../config/forum'
 
@@ -64,62 +62,66 @@ async function submit() {
 </script>
 
 <template>
-  <div class="forum-page">
-    <ForumHeader />
+  <main class="auth-page">
+    <section class="auth-hero">
+      <div class="sky-orb sky-orb-primary"></div>
+      <div class="sky-orb sky-orb-soft"></div>
+      <p class="eyebrow">{{ forumConfig.auth.signupEyebrow }}</p>
+      <h1>{{ forumConfig.auth.signupTitle }}</h1>
+      <p class="hero-copy">{{ forumConfig.auth.signupCopy }}</p>
+      <div class="hero-note">
+        <MessageCircle :size="18" />
+        <span>{{ forumConfig.auth.signupHintSecondary }}</span>
+      </div>
+    </section>
 
-    <main class="auth-shell">
-      <section class="auth-panel">
-        <div class="auth-panel__head">
+    <el-card class="auth-card" shadow="never">
+      <template #header>
+        <div class="card-header">
           <div>
-            <p class="topic-toolbar__eyebrow">{{ forumConfig.auth.signupEyebrow }}</p>
-            <h1>{{ forumConfig.auth.signupTitle }}</h1>
-            <p>{{ forumConfig.auth.signupCopy }}</p>
+            <p class="form-kicker">新账号</p>
+            <h2>创建账号</h2>
           </div>
-          <div class="auth-panel__badge">Create Account</div>
+          <Sparkles :size="24" />
         </div>
+      </template>
 
-        <el-alert
-          v-if="errorMessage"
-          :title="errorMessage"
-          type="error"
-          show-icon
-          :closable="false"
-          class="form-alert"
-        />
+      <el-alert
+        v-if="errorMessage"
+        :title="errorMessage"
+        type="error"
+        show-icon
+        :closable="false"
+        class="form-alert"
+      />
 
-        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="auth-form">
-          <el-form-item label="用户名" prop="username">
-            <el-input v-model.trim="form.username" size="large" clearable />
-          </el-form-item>
-          <el-form-item label="密码" prop="password">
-            <el-input v-model="form.password" size="large" type="password" show-password />
-          </el-form-item>
-          <el-form-item label="确认密码" prop="re_password">
-            <el-input v-model="form.re_password" size="large" type="password" show-password @keyup.enter="submit" />
-          </el-form-item>
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large" class="auth-form">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model.trim="form.username" placeholder="请输入用户名" clearable />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="form.password" placeholder="请输入密码" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="re_password">
+          <el-input v-model="form.re_password" placeholder="请再次输入密码" type="password" show-password @keyup.enter="submit" />
+        </el-form-item>
 
-          <div class="editor-actions">
-            <button class="site-action" type="button" @click="$router.push('/login')">{{ forumConfig.auth.signupBackToLogin }}</button>
-            <button class="site-action site-action--primary" type="button" :disabled="loading" @click="submit">
-              {{ loading ? '注册中...' : '创建账号' }}
-            </button>
-          </div>
-        </el-form>
-      </section>
+        <el-button class="submit-button" type="primary" size="large" round :loading="loading" @click="submit">
+          创建账号
+        </el-button>
+      </el-form>
 
-      <aside class="auth-aside">
-        <img :src="heroUrl" :alt="forumConfig.brand.fullName" />
-        <div class="auth-aside__content">
-          <div class="auth-note">
-            <ShieldPlus :size="16" />
-            <span>{{ forumConfig.auth.signupHintPrimary }}</span>
-          </div>
-          <div class="auth-note">
-            <Leaf :size="16" />
-            <span>{{ forumConfig.auth.signupHintSecondary }}</span>
-          </div>
+      <div class="auth-card__notes">
+        <div class="auth-note">
+          <ShieldPlus :size="16" />
+          <span>{{ forumConfig.auth.signupHintPrimary }}</span>
         </div>
-      </aside>
-    </main>
-  </div>
+        <div class="auth-note">
+          <Leaf :size="16" />
+          <span>已有账号？</span>
+          <RouterLink to="/login">去登录</RouterLink>
+        </div>
+      </div>
+    </el-card>
+  </main>
 </template>

@@ -1,12 +1,12 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Compass, Leaf, PenSquare, Sparkles } from 'lucide-vue-next'
+import { Leaf, PenSquare, Search, Sparkles, X } from 'lucide-vue-next'
 import heroUrl from '../assets/hero.png'
 import { useAuthState } from '../api/auth'
 import { forumConfig } from '../config/forum'
 
-defineProps({
+const props = defineProps({
   communities: {
     type: Array,
     default: () => []
@@ -22,18 +22,37 @@ defineProps({
   activeCommunity: {
     type: Object,
     default: null
+  },
+  searchKeyword: {
+    type: String,
+    default: ''
   }
 })
 
-const emit = defineEmits(['change-community'])
+const emit = defineEmits(['change-community', 'search'])
 
 const router = useRouter()
-const { user, isLoggedIn } = useAuthState()
+const { isLoggedIn } = useAuthState()
+const searchInput = ref(props.searchKeyword)
 
-const userLabel = computed(() => user.value?.user_name || user.value?.username || '已登录用户')
+watch(
+  () => props.searchKeyword,
+  (value) => {
+    searchInput.value = value
+  }
+)
 
 function selectCommunity(id) {
   emit('change-community', id)
+}
+
+function submitSearch() {
+  emit('search', searchInput.value)
+}
+
+function clearSearch() {
+  searchInput.value = ''
+  emit('search', '')
 }
 
 function openNewPost() {
@@ -61,22 +80,32 @@ function openNewPost() {
       </div>
     </section>
 
-    <section class="sidebar-panel">
+    <section class="sidebar-panel sidebar-panel--search">
       <div class="sidebar-panel__head">
-        <h3>{{ forumConfig.sidebar.statusTitle }}</h3>
-        <Compass :size="15" />
+        <h3>{{ forumConfig.sidebar.searchTitle }}</h3>
+        <Search :size="15" />
       </div>
 
-      <div v-if="isLoggedIn" class="sidebar-user">
-        <strong>{{ userLabel }}</strong>
-        <p>{{ forumConfig.sidebar.loggedInDescription }}</p>
-      </div>
-      <div v-else class="sidebar-user">
-        <strong>{{ forumConfig.sidebar.guestTitle }}</strong>
-        <p>{{ forumConfig.sidebar.guestDescription }}</p>
+      <div class="sidebar-search">
+        <div class="sidebar-search__input">
+          <Search :size="15" />
+          <input
+            v-model.trim="searchInput"
+            type="search"
+            :placeholder="forumConfig.sidebar.searchPlaceholder"
+            @keyup.enter="submitSearch"
+          />
+          <button v-if="searchInput" type="button" aria-label="清空搜索" @click="clearSearch">
+            <X :size="14" />
+          </button>
+        </div>
+        <button class="sidebar-cta" type="button" @click="submitSearch">
+          <Search :size="16" />
+          <span>{{ searchInput ? '搜索帖子' : '查看全部' }}</span>
+        </button>
       </div>
 
-      <button class="sidebar-cta" type="button" @click="openNewPost">
+      <button class="sidebar-search__publish" type="button" @click="openNewPost">
         <PenSquare :size="16" />
         <span>{{ isLoggedIn ? forumConfig.sidebar.newPostCta : forumConfig.sidebar.loginPostCta }}</span>
       </button>

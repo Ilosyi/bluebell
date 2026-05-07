@@ -13,12 +13,16 @@ func resetUserDeps(t *testing.T) {
 	origCheckUserExist := checkUserExist
 	origInsertUser := insertUser
 	origLoginUser := loginUser
+	origGetUserProfile := getUserProfile
+	origUpdateProfile := updateProfile
 	origGenUserID := genUserID
 	origGenToken := genToken
 	t.Cleanup(func() {
 		checkUserExist = origCheckUserExist
 		insertUser = origInsertUser
 		loginUser = origLoginUser
+		getUserProfile = origGetUserProfile
+		updateProfile = origUpdateProfile
 		genUserID = origGenUserID
 		genToken = origGenToken
 	})

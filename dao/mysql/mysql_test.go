@@ -175,8 +175,8 @@ func TestUserDAO(t *testing.T) {
 	t.Run("InsertUser hashes password", func(t *testing.T) {
 		hashed, _ := encryptPassword("password123")
 		setMockDB(t, sqlExpectation{
-			queryContains: "insert into user (user_id,username,password) values (?,?,?)",
-			args:          []driver.Value{int64(1), "alice", hashed},
+			queryContains: "insert into user (user_id,username,password,nickname) values (?,?,?,?)",
+			args:          []driver.Value{int64(1), "alice", hashed, "alice"},
 			exec:          true,
 		})
 		user := &models.User{UserID: 1, Username: "alice", Password: "password123"}
@@ -191,10 +191,10 @@ func TestUserDAO(t *testing.T) {
 	t.Run("Login success", func(t *testing.T) {
 		hashed, _ := encryptPassword("password123")
 		setMockDB(t, sqlExpectation{
-			queryContains: "select user_id, username, password from user where username=?",
-			args:          []driver.Value{"alice"},
-			columns:       []string{"user_id", "username", "password"},
-			rows:          [][]driver.Value{{int64(1), "alice", hashed}},
+			queryContains: "select user_id, username, password, coalesce(nickname, '') as nickname, coalesce(avatar_url, '') as avatar_url, coalesce(bio, '') as bio from user where username=? or nickname=? limit 1",
+			args:          []driver.Value{"alice", "alice"},
+			columns:       []string{"user_id", "username", "password", "nickname", "avatar_url", "bio"},
+			rows:          [][]driver.Value{{int64(1), "alice", hashed, "Alice", "", "hello"}},
 		})
 		user := &models.User{Username: "alice", Password: "password123"}
 		if err := Login(user); err != nil {
@@ -207,23 +207,23 @@ func TestUserDAO(t *testing.T) {
 
 	t.Run("Login wrong password", func(t *testing.T) {
 		setMockDB(t, sqlExpectation{
-			queryContains: "select user_id, username, password from user where username=?",
-			args:          []driver.Value{"alice"},
-			columns:       []string{"user_id", "username", "password"},
-			rows:          [][]driver.Value{{int64(1), "alice", "bad-hash"}},
+			queryContains: "select user_id, username, password, coalesce(nickname, '') as nickname, coalesce(avatar_url, '') as avatar_url, coalesce(bio, '') as bio from user where username=? or nickname=? limit 1",
+			args:          []driver.Value{"alice", "alice"},
+			columns:       []string{"user_id", "username", "password", "nickname", "avatar_url", "bio"},
+			rows:          [][]driver.Value{{int64(1), "alice", "bad-hash", "", "", ""}},
 		})
 		err := Login(&models.User{Username: "alice", Password: "password123"})
-		if err == nil || err.Error() != "用户名或密码错误" {
+		if err == nil || err.Error() != "账号或密码错误" {
 			t.Fatalf("Login error = %v", err)
 		}
 	})
 
 	t.Run("GetUserById", func(t *testing.T) {
 		setMockDB(t, sqlExpectation{
-			queryContains: "select username from user where user_id=?",
+			queryContains: "select user_id, username, coalesce(nickname, '') as nickname, coalesce(avatar_url, '') as avatar_url, coalesce(bio, '') as bio, create_time from user where user_id=?",
 			args:          []driver.Value{int64(1)},
-			columns:       []string{"username"},
-			rows:          [][]driver.Value{{"alice"}},
+			columns:       []string{"user_id", "username", "nickname", "avatar_url", "bio", "create_time"},
+			rows:          [][]driver.Value{{int64(1), "alice", "Alice", "", "hello", time.Unix(100, 0)}},
 		})
 		user, err := GetUserById(1)
 		if err != nil {
@@ -285,11 +285,11 @@ func TestPostDAO(t *testing.T) {
 	now := time.Unix(100, 0)
 	t.Run("CreatePost", func(t *testing.T) {
 		setMockDB(t, sqlExpectation{
-			queryContains: "insert into post( post_id, title, content, author_id, community_id) values (?, ?, ?, ?, ?)",
-			args:          []driver.Value{int64(1), "title", "content", int64(2), int64(3)},
+			queryContains: "insert into post( post_id, title, content, author_id, community_id, status) values (?, ?, ?, ?, ?, ?)",
+			args:          []driver.Value{int64(1), "title", "content", int64(2), int64(3), int64(models.PostStatusPublished)},
 			exec:          true,
 		})
-		err := CreatePost(&models.Post{ID: 1, Title: "title", Content: "content", AuthorID: 2, CommunityID: 3})
+		err := CreatePost(&models.Post{ID: 1, Title: "title", Content: "content", AuthorID: 2, CommunityID: 3, Status: models.PostStatusPublished})
 		if err != nil {
 			t.Fatalf("CreatePost error: %v", err)
 		}
@@ -343,8 +343,8 @@ func TestPostDAO(t *testing.T) {
 
 	t.Run("GetPostList", func(t *testing.T) {
 		setMockDB(t, sqlExpectation{
-			queryContains: "SELECT post_id, title, content, author_id, community_id,create_time FROM post ORDER BY create_time DESC LIMIT ?,?",
-			args:          []driver.Value{int64(10), int64(10)},
+			queryContains: "SELECT post_id, title, content, author_id, community_id,create_time FROM post WHERE status=? ORDER BY create_time DESC LIMIT ?,?",
+			args:          []driver.Value{int64(models.PostStatusPublished), int64(10), int64(10)},
 			columns:       []string{"post_id", "title", "content", "author_id", "community_id", "create_time"},
 			rows:          [][]driver.Value{{int64(10), "title", "content", int64(2), int64(3), now}},
 		})

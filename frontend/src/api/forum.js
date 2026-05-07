@@ -40,7 +40,8 @@ export function formatPageParams(params = {}) {
     page: Number(params.page) > 0 ? Number(params.page) : 1,
     size: Number(params.size) > 0 ? Number(params.size) : 10,
     order: params.order || 'time',
-    community_id: params.communityID || undefined
+    community_id: params.communityID || undefined,
+    keyword: params.keyword?.trim() || undefined
   }
 }
 
@@ -79,6 +80,57 @@ export async function fetchPostDetail(id) {
 export async function createPost(payload) {
   const { data } = await client.post('/post', payload)
   return unwrap(data, '发帖失败')
+}
+
+export async function createDraft(payload) {
+  const { data } = await client.post('/post/draft', payload)
+  return normalizePost(unwrap(data, '草稿保存失败'))
+}
+
+export async function fetchMyPosts(params = {}) {
+  const { data } = await client.get('/my/posts', {
+    params: {
+      page: Number(params.page) > 0 ? Number(params.page) : 1,
+      size: Number(params.size) > 0 ? Number(params.size) : 10,
+      status: Number(params.status ?? 1)
+    }
+  })
+  const payload = unwrap(data, '帖子管理列表加载失败')
+  return {
+    items: (payload.items || []).map(normalizePost),
+    pagination: payload.pagination || {
+      page: 1,
+      size: params.size || 10,
+      total: 0,
+      totalPages: 1,
+      hasMore: false
+    }
+  }
+}
+
+export async function fetchMyPostDetail(id) {
+  const { data } = await client.get(`/my/posts/${id}`)
+  return normalizePost(unwrap(data, '帖子加载失败'))
+}
+
+export async function updatePost(id, payload) {
+  const { data } = await client.put(`/post/${id}`, payload)
+  return normalizePost(unwrap(data, '帖子更新失败'))
+}
+
+export async function updateDraft(id, payload) {
+  const { data } = await client.put(`/post/${id}/draft`, payload)
+  return normalizePost(unwrap(data, '草稿更新失败'))
+}
+
+export async function publishDraft(id) {
+  const { data } = await client.post(`/post/${id}/publish`)
+  return normalizePost(unwrap(data, '草稿发布失败'))
+}
+
+export async function deletePost(id) {
+  const { data } = await client.delete(`/post/${id}`)
+  return unwrap(data, '删除帖子失败')
 }
 
 export async function votePost(postID, direction) {

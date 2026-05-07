@@ -43,6 +43,10 @@ function logout() {
           <PenSquare :size="14" />
           <span>{{ forumConfig.navigation.newPost }}</span>
         </RouterLink>
+        <RouterLink v-if="isLoggedIn" class="site-nav__link" to="/profile">
+          <UserRound :size="14" />
+          <span>{{ forumConfig.navigation.profile }}</span>
+        </RouterLink>
       </nav>
 
       <div class="site-header__actions">
@@ -51,6 +55,10 @@ function logout() {
             <ShieldCheck :size="15" />
             <span>{{ userLabel }}</span>
           </div>
+          <button class="site-action" type="button" @click="push('/profile')">
+            <UserRound :size="16" />
+            <span>账号中心</span>
+          </button>
           <button class="site-action site-action--primary" type="button" @click="push('/new')">
             <PenSquare :size="16" />
             <span>写新主题</span>

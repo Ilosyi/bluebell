@@ -14,6 +14,8 @@ func resetPostDeps(t *testing.T) {
 	origGenPostID := genPostID
 	origCreatePostInMySQL := createPostInMySQL
 	origSavePostTimeAndScore := savePostTimeAndScore
+	origDeletePostIndex := deletePostIndex
+	origMovePostCommunityIndex := movePostCommunityIndex
 	origGetPostBundleByIDFromMySQL := getPostBundleByIDFromMySQL
 	origGetPostIDsInOrder := getPostIDsInOrder
 	origGetCommunityPostIDsInOrder := getCommunityPostIDsInOrder
@@ -21,11 +23,21 @@ func resetPostDeps(t *testing.T) {
 	origGetPostVoteData := getPostVoteData
 	origGetPostListFromMySQL := getPostListFromMySQL
 	origCountPostsFromMySQL := countPostsFromMySQL
+	origSearchPostBundlesFromMySQL := searchPostBundlesFromMySQL
+	origCountSearchPostsFromMySQL := countSearchPostsFromMySQL
 	origCountPostsInCommunity := countPostsInCommunity
+	origGetPostForManageByID := getPostForManageByID
+	origGetMyPostBundles := getMyPostBundles
+	origCountMyPosts := countMyPosts
+	origUpdatePostInMySQL := updatePostInMySQL
+	origPublishPostInMySQL := publishPostInMySQL
+	origDeletePostInMySQL := deletePostInMySQL
 	t.Cleanup(func() {
 		genPostID = origGenPostID
 		createPostInMySQL = origCreatePostInMySQL
 		savePostTimeAndScore = origSavePostTimeAndScore
+		deletePostIndex = origDeletePostIndex
+		movePostCommunityIndex = origMovePostCommunityIndex
 		getPostBundleByIDFromMySQL = origGetPostBundleByIDFromMySQL
 		getPostIDsInOrder = origGetPostIDsInOrder
 		getCommunityPostIDsInOrder = origGetCommunityPostIDsInOrder
@@ -33,7 +45,15 @@ func resetPostDeps(t *testing.T) {
 		getPostVoteData = origGetPostVoteData
 		getPostListFromMySQL = origGetPostListFromMySQL
 		countPostsFromMySQL = origCountPostsFromMySQL
+		searchPostBundlesFromMySQL = origSearchPostBundlesFromMySQL
+		countSearchPostsFromMySQL = origCountSearchPostsFromMySQL
 		countPostsInCommunity = origCountPostsInCommunity
+		getPostForManageByID = origGetPostForManageByID
+		getMyPostBundles = origGetMyPostBundles
+		countMyPosts = origCountMyPosts
+		updatePostInMySQL = origUpdatePostInMySQL
+		publishPostInMySQL = origPublishPostInMySQL
+		deletePostInMySQL = origDeletePostInMySQL
 	})
 }
 
@@ -165,6 +185,42 @@ func TestGetPostListNewRoutesByCommunity(t *testing.T) {
 				t.Fatalf("total = %d, want %d", got.Pagination.Total, tt.total)
 			}
 		})
+	}
+}
+
+func TestGetPostListNewRoutesToSearch(t *testing.T) {
+	resetPostDeps(t)
+	searchCalled := false
+	searchPostBundlesFromMySQL = func(p *models.ParamPostList) ([]*models.ApiPostDetail, error) {
+		searchCalled = true
+		if p.Keyword != "Redis" {
+			t.Fatalf("keyword = %q, want Redis", p.Keyword)
+		}
+		return []*models.ApiPostDetail{{
+			AuthorName: "alice",
+			Post:       &models.Post{ID: 10, AuthorID: 1, CommunityID: 2},
+			CommunityDetail: &models.CommunityDetail{
+				ID:   2,
+				Name: "go",
+			},
+		}}, nil
+	}
+	getPostVoteData = func(ids []string) ([]int64, error) {
+		if !reflect.DeepEqual(ids, []string{"10"}) {
+			t.Fatalf("vote ids = %#v", ids)
+		}
+		return []int64{3}, nil
+	}
+	countSearchPostsFromMySQL = func(p *models.ParamPostList) (int64, error) {
+		return 1, nil
+	}
+
+	got, err := GetPostListNew(&models.ParamPostList{Page: 1, Size: 10, Order: "time", Keyword: " Redis "})
+	if err != nil {
+		t.Fatalf("GetPostListNew search error: %v", err)
+	}
+	if !searchCalled || got.Pagination.Total != 1 || got.Items[0].VoteNum != 3 {
+		t.Fatalf("unexpected search result: %#v", got)
 	}
 }
 

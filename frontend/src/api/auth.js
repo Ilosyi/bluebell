@@ -66,19 +66,25 @@ export function getUser() {
 
 export function saveAuth(payload) {
   const storage = getStorage()
-  authToken.value = payload?.token || ''
-  authUser.value = payload || null
+  const currentToken = authToken.value || readTokenFromStorage()
+  const nextPayload = payload ? { ...authUser.value, ...payload } : null
+  const nextToken = nextPayload ? nextPayload.token || currentToken : ''
+  if (nextPayload && nextToken) {
+    nextPayload.token = nextToken
+  }
+  authToken.value = nextToken || ''
+  authUser.value = nextPayload
 
   if (!storage) return
 
-  if (payload?.token) {
-    storage.setItem(TOKEN_KEY, payload.token)
+  if (nextPayload?.token) {
+    storage.setItem(TOKEN_KEY, nextPayload.token)
   } else {
     storage.removeItem(TOKEN_KEY)
   }
 
-  if (payload) {
-    storage.setItem(USER_KEY, JSON.stringify(payload))
+  if (nextPayload) {
+    storage.setItem(USER_KEY, JSON.stringify(nextPayload))
   } else {
     storage.removeItem(USER_KEY)
   }
@@ -175,5 +181,35 @@ export async function signup(payload) {
   } catch (error) {
     if (error?.isAuthError) throw error
     throw new Error(getMessage(error, '注册失败，请稍后重试'))
+  }
+}
+
+export async function fetchMe() {
+  try {
+    const { data } = await client.get('/me')
+    const profile = unwrapApiResponse(data, '用户资料加载失败')
+    saveAuth({
+      ...profile,
+      user_name: profile.username
+    })
+    return profile
+  } catch (error) {
+    if (error?.isAuthError) throw error
+    throw new Error(getMessage(error, '用户资料加载失败'))
+  }
+}
+
+export async function updateMe(payload) {
+  try {
+    const { data } = await client.put('/me', payload)
+    const profile = unwrapApiResponse(data, '用户资料保存失败')
+    saveAuth({
+      ...profile,
+      user_name: profile.username
+    })
+    return profile
+  } catch (error) {
+    if (error?.isAuthError) throw error
+    throw new Error(getMessage(error, '用户资料保存失败'))
   }
 }

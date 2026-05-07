@@ -5,6 +5,7 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import NewPost from '../views/NewPost.vue'
 import PostDetail from '../views/PostDetail.vue'
+import Profile from '../views/Profile.vue'
 import Signup from '../views/Signup.vue'
 
 const router = createRouter({
@@ -24,6 +25,16 @@ const router = createRouter({
       path: '/new',
       name: 'new-post',
       component: NewPost
+    },
+    {
+      path: '/post/:id/edit',
+      name: 'edit-post',
+      component: NewPost
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: Profile
     },
     {
       path: '/login',
@@ -49,8 +60,8 @@ setAuthRedirectHandler(() => {
 })
 
 router.beforeEach((to) => {
-  if (to.name === 'new-post' && !getToken()) {
-    ElMessage.warning('请先登录后发帖')
+  if (['new-post', 'edit-post', 'profile'].includes(to.name) && !getToken()) {
+    ElMessage.warning(to.name === 'profile' ? '请先登录后查看账号中心' : '请先登录后发帖')
     return {
       path: '/login',
       query: { redirect: to.fullPath }

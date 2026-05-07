@@ -1,4 +1,5 @@
 .claude/
+.agent/
 .idea/
 
 # Local configuration

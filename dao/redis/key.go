@@ -1,6 +1,9 @@
 package redis
 
-// redis key
+// 这里统一定义项目里用到的 Redis key 名称。
+// 这样做的好处是：
+// 1. 所有 key 都集中管理，不容易写错。
+// 2. 后续如果要改 key 命名规则，只需要改这里。
 const (
 	KeyPrefix              = "bluebell:"
 	KeyPostTimeZset        = "post:time"   //帖子时间线 zset, member=post_id, score=发布时间戳
@@ -9,7 +12,8 @@ const (
 	KeyCommunitySetPF      = "community:"  //社区帖子集合 set, member=post_id
 )
 
-// 给redis key加上前缀
+// getRediskey 给业务 key 补上统一前缀。
+// 例如传入 "post:time"，返回 "bluebell:post:time"。
 func getRediskey(key string) string {
 	return KeyPrefix + key
 }

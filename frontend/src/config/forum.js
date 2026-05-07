@@ -7,7 +7,8 @@ export const forumConfig = {
   },
   navigation: {
     home: '主题流',
-    newPost: '发布主题'
+    newPost: '发布主题',
+    profile: '账号中心'
   },
   home: {
     allTabLabel: '全部',
@@ -22,6 +23,8 @@ export const forumConfig = {
     heroTitle: '把技术讨论沉淀成可回看的主题流',
     heroDescription: '浏览社区、阅读帖子详情、登录后发帖与投票，整体流程和后端接口保持一致。',
     statusTitle: '当前状态',
+    searchTitle: '搜索帖子',
+    searchPlaceholder: '标题、正文、作者、社区',
     guestTitle: '游客浏览中',
     guestDescription: '论坛主页和帖子详情都可以直接看，只有发帖和投票需要先登录。',
     loggedInDescription: '你现在可以发布主题，也可以在帖子详情页参与投票。',

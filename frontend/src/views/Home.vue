@@ -16,6 +16,7 @@ const {
   activeOrder,
   activeCommunityID,
   activeCommunity,
+  activeKeyword,
   errorMessage,
   page,
   total,
@@ -28,6 +29,7 @@ const {
   visiblePages,
   changeOrder,
   changeCommunity,
+  changeKeyword,
   goPage,
   refreshAll,
   initialize
@@ -48,7 +50,7 @@ onMounted(async () => {
   <div class="forum-page">
     <ForumHeader />
 
-    <main class="forum-layout">
+    <main class="forum-layout forum-layout--home">
       <section class="forum-main">
         <section class="forum-board">
           <div class="forum-board__primary">
@@ -155,11 +157,14 @@ onMounted(async () => {
       </section>
 
       <ForumSidebar
+        class="forum-sidebar--compact"
         :communities="communities"
         :active-community-id="activeCommunityID"
         :active-community="activeCommunity"
+        :search-keyword="activeKeyword"
         :hot-topics="hotTopics"
         @change-community="changeCommunity"
+        @search="changeKeyword"
       />
     </main>
   </div>
